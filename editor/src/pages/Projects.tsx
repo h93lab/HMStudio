@@ -68,4 +68,4 @@ export const ProjectsPage: React.FC<{params: Record<string, string>}> = () => {
   );
 };
 
-const Grid: React.FC<{children: React.ReactNode}> = ({children}) => <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">{children}</div>;
+const Grid: React.FC<{children: React.ReactNode}> = ({children}) => <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] gap-4">{children}</div>;

@@ -44,7 +44,7 @@ export const TemplatesPage: React.FC<{params: Record<string, string>}> = () => {
         <FilterTabs label="Category" value={tab} onChange={setTab} items={TABS} className="w-fit" />
         {error && <ErrorBox message={error} onRetry={reload} />}
         {loading && !data ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-44 rounded-xl" />
             ))}
@@ -65,7 +65,7 @@ export const TemplatesPage: React.FC<{params: Record<string, string>}> = () => {
             />
           )
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
             {shown.map((t) => (
               <TemplateCard key={t.id} template={t} onDelete={setToDelete} />
             ))}

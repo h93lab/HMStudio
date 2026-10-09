@@ -255,7 +255,7 @@ const RunView: React.FC<{id: string}> = ({id}) => {
     <PageBody>
       <PageTitle title="New video" hint="Progress" />
       <Panel
-        className="mx-auto w-full max-w-3xl"
+        className="w-full"
         title={
           <span className="flex min-w-0 items-center gap-2">
             <StatusDot status={run.status} />

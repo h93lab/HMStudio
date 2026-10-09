@@ -47,13 +47,13 @@ const StyleList = () => {
       {error && <ErrorBox message={error} onRetry={reload} />}
       <h2 className="font-title text-sm">Your styles</h2>
       {loading && !data ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-36 rounded-xl" />
           ))}
         </div>
       ) : data?.length ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
           {data.map((s) => (
             <StyleCard key={s.id} name={s.name} prompt={s.prompt} pack={s.pack} editHref={`/styles/${s.id}`} onDelete={() => setToDelete(s)} />
           ))}
@@ -73,7 +73,7 @@ const StyleList = () => {
         )
       )}
       <h2 className="font-title text-sm">Built-in</h2>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
         {packIds.map((id) => (
           <StyleCard key={id} builtIn name={packs[id].label} pack={packs[id]} editHref={`/styles/new?base=${id}`} />
         ))}

@@ -3,7 +3,7 @@
 One look everywhere. Build pages from `src/components/kit.tsx` (+ shadcn `components/ui/*`); never re-style a kit piece locally.
 
 ## Surfaces and colors
-- Page frame: `AppShell` only (the one 22px radius).
+- Page frame: `AppShell` only (the one 22px radius). Full window width, no max-width; card grids add columns as the screen grows (auto-fill or extra breakpoints), cards keep their size.
 - Every card / panel / section / dialog / preview frame: `Panel` (or the same classes: `rounded-xl border bg-card p-4`). `bg-panel` and raw hex surfaces are gone.
 - Recessed areas (logs, drop zones, wells, empty states): `bg-field`.
 - Colors come from tokens (`primary`, `muted-foreground`, `destructive`, `chart-2`…). Raw hex only for *data*: brand swatches, scene-type colors (`src/lib/sceneColors.ts`), waveforms.

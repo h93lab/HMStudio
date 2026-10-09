@@ -15,11 +15,11 @@ const NAV = [
 ];
 
 // Graphite frame + lime accent from the approved prototype. `actions` sits at the right of the header.
-export const AppShell: React.FC<{children: React.ReactNode; actions?: React.ReactNode; full?: boolean}> = ({children, actions, full}) => {
+export const AppShell: React.FC<{children: React.ReactNode; actions?: React.ReactNode}> = ({children, actions}) => {
   const {path} = useLocation();
   return (
-    <div className="min-h-full p-3 sm:p-5">
-      <div className={cn('mx-auto flex min-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[22px] border bg-field', !full && 'max-w-[1400px]')}>
+    <div className="min-h-full p-2 sm:p-3">
+      <div className="flex min-h-[calc(100vh-1.5rem)] flex-col overflow-hidden rounded-[22px] border bg-field">
         <header className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b px-4 py-3 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">
             <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
