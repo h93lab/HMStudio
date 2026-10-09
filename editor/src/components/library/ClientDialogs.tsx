@@ -111,7 +111,7 @@ export const NewClientDialog: React.FC<DialogProps> = ({open, onOpenChange, onDo
           <IdField value={id} onChange={setId} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="client-new-name">Name</Label>
-            <Input id="client-new-name" dir="auto" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input id="client-new-name" dir="auto" placeholder="Nova Tech" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="client-new-url">Website (optional)</Label>

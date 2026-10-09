@@ -85,7 +85,7 @@ export const SettingsPage: React.FC<{params: Record<string, string>}> = () => {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => void reset()}>Reset</AlertDialogAction>
+                    <AlertDialogAction variant="destructive" onClick={() => void reset()}>Reset</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

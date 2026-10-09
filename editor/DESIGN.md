@@ -35,7 +35,8 @@ No `rounded`, `rounded-sm`, `rounded-2xl`, `rounded-[…]`.
 ## Buttons
 - One lime primary per region: the page header action, or a dialog/form's submit. Card-level actions are `outline` (or `ghost` for icon-only). Lime primaries use `font-title`.
 - Sizes: default (h-9) in forms/headers; `size="sm"` (h-8) inside cards and rows; icon-only `size="icon"` / `"icon-sm"` with `aria-label`.
-- Destructive actions: in a menu or a `ghost` icon, always confirmed with AlertDialog.
+- Destructive actions: in a menu or a `ghost` icon, always confirmed with AlertDialog. The confirm button is `variant="destructive"`, never lime.
+- Actions only appear when they can work (e.g. a project with no version has no Edit/Share/Revise).
 
 ## Patterns
 - Filters (status, kinds, categories): `FilterTabs` — not chips, not shadcn Tabs.

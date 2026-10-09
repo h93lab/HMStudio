@@ -22,7 +22,7 @@
   --accent-foreground: #f1f1f1;
   --destructive: #ff5468;
   --border: #323235;
-  --input: #2e2e31;
+  --input: #3a3a3f; /* control borders: visible on cards and dialogs */
   --ring: #dcff2a;
   --chart-1: #dcff2a;
   --chart-2: #4f9dff;

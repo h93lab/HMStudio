@@ -104,6 +104,8 @@ export const VideoCard: React.FC<{job: JobSummary; onChanged: () => void}> = ({j
               <MessageSquare className="size-3" /> {job.openComments}
             </span>
           )}
+          {/* A job with no version yet has nothing to edit, share or revise: the cover's "See queue" is its only action. */}
+          {job.versions.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon-sm" aria-label="Video actions">
@@ -145,6 +147,7 @@ export const VideoCard: React.FC<{job: JobSummary; onChanged: () => void}> = ({j
               </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
         </div>
       </div>
       <Dialog open={reviseOpen} onOpenChange={setReviseOpen}>
