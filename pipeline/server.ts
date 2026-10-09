@@ -1,5 +1,6 @@
 import {execFileSync, spawn, type ChildProcess} from 'node:child_process';
-import {appendFileSync, closeSync, createReadStream, existsSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, statSync, writeFileSync} from 'node:fs';
+import {appendFileSync, closeSync, createReadStream, createWriteStream, existsSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import os from 'node:os';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {createServer, type IncomingMessage, type ServerResponse} from 'node:http';
 import path from 'node:path';
@@ -9,12 +10,14 @@ import {authHeaders} from './llm';
 import {FPS, TRANSITION, formats, totalDuration, type Theme, type VideoProps} from '../src/schema';
 import {loadJob, loadProps, saveJob, writeAtomic, type Job} from './jobs';
 import {rewriteScene, saveManual} from './produce';
-import {packIds, packs} from '../src/design/packs';
 import {musicPresets} from './music';
 import {defaultVoice} from './voice';
 import {DIALECTS, archiveProfile, duplicateProfile, readProfiles, saveProfile, validClientId, type StoredProfile} from './profiles';
 import {PUBLIC as PUB, assetPathFromUrl, bumpTemplateUses, createTemplate, deleteAsset, deleteTemplate, getTemplate, listAssets, readTemplates, saveUpload, sceneTypes} from './library';
 import {assertPublicUrl, brandTheme, fetchBrand} from './brand';
+import {checkPin, clearCookie, clearFails, hasSession, isLocal, lockedFor, pinSet, recordFail, remoteIp, sessionCookie, setPin, validPin} from './auth';
+import {deleteStyle, generatePack, isStyleId, listStyles, saveStyle, styleOptions} from './styles';
+import {importDesignSystem} from './designSystem';
 
 // Studio API + SPA host: JSON endpoints under /api, the built editor (editor/dist) for every other page.
 // Binds to localhost and the owner's Tailscale address only.
@@ -539,8 +542,8 @@ const reviewView = (id: string) => {
     client: job.client,
     title: clientName(job.client),
     v: v.v,
-    ...(file && existsSync(path.join(config.dirs.jobs, id, file)) ? {video: fileUrl(id, file)} : {}),
-    ...(stills[0] ? {cover: stills[0]} : {}),
+    ...(file && existsSync(path.join(config.dirs.jobs, id, file)) ? {video: `${fileUrl(id, file)}?t=${reviewToken(id)}`} : {}),
+    ...(stills[0] ? {cover: `${stills[0]}?t=${reviewToken(id)}`} : {}),
     seconds: versionSeconds(id, v.v).seconds,
     ...(job.approval ? {approval: job.approval} : {}),
     comments: commentsOf(id).filter((c) => !c.resolved).map((c) => ({id: c.id, time: c.time, text: c.text, author: c.author, at: c.at, scene: scenes.length ? sceneAt(scenes, c.time) : 0})),
@@ -581,7 +584,7 @@ export const parseMake = (b: Record<string, any>) => {
   const seconds = intIn(b.seconds, 10, 90, 'seconds');
   const opts = ['--client', client, '--format', b.format, '--dialect', b.dialect, '--seconds', String(seconds), '--tier', b.tier, '--gender', b.gender];
   if (b.style) {
-    if (!packIds.includes(b.style)) throw new HttpError(400, 'bad style');
+    if (typeof b.style !== 'string' || !isStyleId(b.style)) throw new HttpError(400, 'bad style');
     opts.push('--style', b.style);
   }
   if (b.music) {
@@ -633,6 +636,58 @@ const exportRuns = (job: Job, b: Record<string, any>) => {
   return runs;
 };
 
+// ── Login gate ───────────────────────────────────────────────────────────────
+// What a visitor without a session may still call: the login endpoints and the token-protected review page.
+const PUBLIC_API = [/^\/api\/auth\/(state|login|pin|logout)$/, /^\/api\/review\/[\w-]+(\/decision)?$/, /^\/api\/jobs\/[\w-]+\/comments$/];
+const sessionHeaders = (res: ServerResponse, cookie: string) => res.setHeader('set-cookie', cookie);
+
+const DS_EXT = ['.zip', '.md', '.markdown', '.css', '.json', '.html', '.htm', '.txt'];
+const MAX_DS = 20 * 1024 * 1024;
+// Streams the request body to a temp file (never buffered whole); the caller deletes it.
+const uploadToTemp = async (req: IncomingMessage, ext: string, max: number) => {
+  const tmp = path.join(os.tmpdir(), `motion-ds-${randomBytes(6).toString('hex')}${ext}`);
+  if (Number(req.headers['content-length']) > max) throw new HttpError(413, `file too large (max ${max / 1024 / 1024} MB)`);
+  const out = createWriteStream(tmp);
+  let size = 0;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      req.on('data', (c: Buffer) => {
+        size += c.length;
+        if (size > max) {
+          reject(new HttpError(413, `file too large (max ${max / 1024 / 1024} MB)`));
+          req.unpipe(out);
+          out.destroy();
+          req.resume();
+        }
+      });
+      req.on('error', reject);
+      req.on('aborted', () => reject(new Error('upload aborted')));
+      out.on('error', reject);
+      out.on('finish', resolve);
+      req.pipe(out);
+    });
+    if (!size) throw new HttpError(400, 'empty file');
+    return tmp;
+  } catch (e) {
+    rmSync(tmp, {force: true});
+    throw e;
+  }
+};
+
+const styleId = (id: string) => {
+  if (!/^[a-z0-9-]{1,40}$/.test(id)) throw new HttpError(400, 'bad style id');
+  return id;
+};
+// Style module errors are safe messages: unknown id → 404, anything else → 400.
+const styleCall = <T>(fn: () => T): T => {
+  try {
+    return fn();
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
+    throw new HttpError(/unknown|not found/i.test((e as Error).message) ? 404 : 400, (e as Error).message);
+  }
+};
+
 // ── Router ───────────────────────────────────────────────────────────────────
 const jsonOut = (res: ServerResponse, code: number, data: unknown) => send(res, code, JSON.stringify(data), 'application/json; charset=utf-8');
 const clientId = (id: string) => {
@@ -649,8 +704,45 @@ export const handler = async (req: IncomingMessage, res: ServerResponse) => {
     const json = (data: unknown, code = 200) => jsonOut(res, code, data);
     const m = (re: RegExp) => p.match(re);
 
+    const authed = hasSession(req);
+
     if (p.startsWith('/api/') || p === '/api') {
       let r: RegExpMatchArray | null;
+      const commentsRead = method === 'GET' && /\/comments$/.test(p); // reading comments needs a session; only the token-checked POST is public
+      if (!authed && (commentsRead || !PUBLIC_API.some((re) => re.test(p)))) return json({error: 'login required'}, 401);
+      // ── auth
+      if (method === 'GET' && p === '/api/auth/state') return json({authenticated: authed, pinSet: pinSet(), canSetPin: !pinSet() && isLocal(req)});
+      if (method === 'POST' && p === '/api/auth/logout') {
+        sessionHeaders(res, clearCookie());
+        return json({ok: true});
+      }
+      if (method === 'POST' && (p === '/api/auth/login' || p === '/api/auth/pin')) {
+        const body = await readJson(req);
+        const ip = remoteIp(req);
+        // Wrong guesses (login, or the `current` PIN of a change) share one per-IP counter.
+        const guess = (pin: unknown) => {
+          const wait = lockedFor(ip);
+          if (wait) throw new HttpError(429, `too many attempts, try again in ${wait} seconds`);
+          if (checkPin(pin)) return clearFails(ip);
+          recordFail(ip);
+          throw new HttpError(lockedFor(ip) ? 429 : 401, lockedFor(ip) ? `too many attempts, try again in ${lockedFor(ip)} seconds` : 'wrong PIN');
+        };
+        if (p === '/api/auth/login') {
+          if (!pinSet()) throw new HttpError(409, 'no PIN set yet');
+          guess(body.pin);
+        } else {
+          if (!validPin(body.pin)) throw new HttpError(400, 'the PIN must be exactly 6 digits');
+          if (!pinSet()) {
+            if (!isLocal(req)) throw new HttpError(403, 'the first PIN can only be set from the Mac itself');
+          } else {
+            if (!authed) return json({error: 'login required'}, 401);
+            guess(body.current);
+          }
+          setPin(body.pin);
+        }
+        sessionHeaders(res, sessionCookie());
+        return json({ok: true});
+      }
       // ── jobs
       if (method === 'GET' && p === '/api/jobs') return json(jobs().map(summarize));
       if ((r = m(/^\/api\/jobs\/([\w-]+)(?:\/([\w-]+))?$/))) {
@@ -753,7 +845,7 @@ export const handler = async (req: IncomingMessage, res: ServerResponse) => {
       }
 
       // ── options / settings / usage
-      if (method === 'GET' && p === '/api/options') return json({formats: Object.keys(formats), styles: packIds.map((id) => ({id, label: packs[id].label})), music: [...musicPresets], voices: voiceList(), sceneTypes});
+      if (method === 'GET' && p === '/api/options') return json({formats: Object.keys(formats), styles: styleOptions(), music: [...musicPresets], voices: voiceList(), sceneTypes});
       if (method === 'GET' && p === '/api/settings') return json(settingsView());
       if (method === 'PUT' && p === '/api/settings') {
         saveSettings(await readJson(req));
@@ -775,10 +867,63 @@ export const handler = async (req: IncomingMessage, res: ServerResponse) => {
         }
       }
 
+      // ── styles
+      if (method === 'GET' && p === '/api/styles') return json(listStyles());
+      if (method === 'POST' && p === '/api/styles/generate') {
+        const body = await readJson(req);
+        const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+        if (prompt.length < 3 || prompt.length > 2000) throw new HttpError(400, 'prompt must be 3 to 2000 characters');
+        try {
+          return json(await generatePack(prompt, body.base));
+        } catch (e) {
+          throw new HttpError(400, (e as Error).message);
+        }
+      }
+      if (method === 'POST' && p === '/api/styles') {
+        const body = await readJson(req);
+        return json(styleCall(() => saveStyle(body)));
+      }
+      if ((r = m(/^\/api\/styles\/([^/]+)$/))) {
+        const id = styleId(r[1]);
+        if (method === 'PUT') {
+          const body = await readJson(req);
+          return json(styleCall(() => saveStyle(body, id)));
+        }
+        if (method === 'DELETE') {
+          const users = readProfiles().filter((c) => c.defaults?.style === id).map((c) => c.props.theme.client);
+          if (users.length) return json({error: `this style is the default for ${users.join(', ')}; change that first`}, 409);
+          styleCall(() => deleteStyle(id));
+          return json({ok: true});
+        }
+        return json({error: 'method not allowed'}, 405);
+      }
+
       // ── clients
       if (method === 'GET' && p === '/api/clients') {
         const counts = clientCounts();
         return json(readProfiles().map((c) => profileView(c, counts)));
+      }
+      if (method === 'POST' && (r = m(/^\/api\/clients\/([^/]+)\/design-system$/))) {
+        const id = clientId(r[1]);
+        const profile = profileOf(id);
+        if (!profile) throw new HttpError(404, 'unknown client');
+        let name: string;
+        try {
+          name = decodeURIComponent(String(req.headers['x-filename'] ?? ''));
+        } catch {
+          throw new HttpError(400, 'bad file name');
+        }
+        const filename = name.replace(/\\/g, '/').split('/').pop() ?? '';
+        const ext = path.extname(filename).toLowerCase();
+        if (!DS_EXT.includes(ext)) throw new HttpError(400, `file type not allowed (${DS_EXT.join(' ')})`);
+        const tmp = await uploadToTemp(req, ext, MAX_DS);
+        try {
+          return json(await importDesignSystem(tmp, filename, profile.props.theme));
+        } catch (e) {
+          throw new HttpError(400, (e as Error).message);
+        } finally {
+          rmSync(tmp, {force: true});
+        }
       }
       if ((r = m(/^\/api\/clients\/([^/]+)(?:\/(duplicate|archive))?$/))) {
         const [, rawId, action] = r;
@@ -872,10 +1017,17 @@ export const handler = async (req: IncomingMessage, res: ServerResponse) => {
     if (method !== 'GET' && method !== 'HEAD') return send(res, 404, 'not found');
     const rel = decodeURIComponent(p);
     if (rel.startsWith('/files/') && rel.split('/').some((s) => s.startsWith('.'))) return send(res, 404, 'not found');
-    if (rel.startsWith('/files/')) return serveFile(res, config.dirs.jobs, rel.slice(7), req.headers.range);
+    if (rel.startsWith('/files/')) {
+      // The public review page loads its video/cover with the review token instead of a session.
+      if (!authed && !(tokenOk(rel.split('/')[2], url.searchParams.get('t')) && /\.(mp4|jpe?g|png|webp)$/i.test(rel))) return send(res, 401, 'login required'); // a review link opens videos and stills only, never job.json/ledgers
+      return serveFile(res, config.dirs.jobs, rel.slice(7), req.headers.range);
+    }
     if (rel.startsWith('/assets/') && fileUnder(path.join(DIST, 'assets'), rel.slice(8))) return serveFile(res, path.join(DIST, 'assets'), rel.slice(8), undefined, false, 'public, max-age=31536000, immutable');
     // Brand/job assets for the live Player (staticFile paths resolve to /jobs/…, /music/…) and the asset library.
-    if (/^\/(jobs|music|sfx|clients)\//.test(rel) && fileUnder(PUB, rel.slice(1))) return serveFile(res, PUB, rel.slice(1), req.headers.range);
+    if (/^\/(jobs|music|sfx|clients)\//.test(rel) && fileUnder(PUB, rel.slice(1))) {
+      if (!authed) return send(res, 401, 'login required');
+      return serveFile(res, PUB, rel.slice(1), req.headers.range);
+    }
     if (!existsSync(path.join(DIST, 'index.html'))) return send(res, 503, 'UI not built: run `npm run editor`');
     if (rel !== '/' && !rel.endsWith('/index.html') && fileUnder(DIST, rel.slice(1))) return serveFile(res, DIST, rel.slice(1), undefined, false);
     res.setHeader('cache-control', 'no-cache');

@@ -10,6 +10,7 @@
     "revise": "tsx pipeline/cli.ts revise",
     "reformat": "tsx pipeline/cli.ts reformat",
     "cost": "tsx pipeline/cli.ts cost",
+    "pin": "tsx pipeline/cli.ts pin",
     "clients": "tsx pipeline/cli.ts clients",
     "bench": "tsx pipeline/cli.ts bench",
     "audio": "python3 scripts/make-audio.py",

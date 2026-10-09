@@ -1,6 +1,8 @@
 import {z} from 'zod';
 import {zColor} from '@remotion/zod-types';
-import {backgroundNames, cameraModes, packIds} from './design/packs';
+import {backgroundNames, cameraModes, displayFonts, packSchema} from './design/packs';
+export {displayFonts};
+export type {DisplayFont} from './design/packs';
 
 // Pure data contract shared by the Remotion code and the AI pipeline. No React imports here:
 // the pipeline (Node) imports this file to validate what the models write.
@@ -9,9 +11,6 @@ export const FPS = 30;
 export const TRANSITION = 18;
 
 export const fontNames = ['IBM Plex Sans Arabic', 'Cairo', 'Tajawal', 'Readex Pro', 'Almarai'] as const;
-// Display faces for titles (style packs pick one; 'none' = brand font everywhere).
-export const displayFonts = ['none', 'Reem Kufi', 'Lalezar', 'Changa', 'El Messiri', 'Kufam', 'Marhey', 'Rakkas', 'Aref Ruqaa'] as const;
-export type DisplayFont = (typeof displayFonts)[number];
 
 // Line icons the writer can attach to feature items (drawn on with a stroke animation).
 export const iconNames = ['bolt', 'shield', 'chart', 'clock', 'globe', 'lock', 'star', 'heart', 'rocket', 'check', 'users', 'phone', 'camera', 'card', 'cloud', 'spark'] as const;
@@ -84,7 +83,8 @@ export type CaptionWord = z.infer<typeof captionWord>;
 export const videoSchema = z.object({
   theme: themeSchema,
   format: z.enum(Object.keys(formats) as [Format, ...Format[]]),
-  style: z.enum(packIds).describe('Style pack: motion, camera, transitions, backgrounds, finish.'),
+  style: z.string().min(1).max(40).describe('Style pack id: a built-in pack or a custom style id.'),
+  pack: packSchema.optional().describe('Full pack embedded for custom styles so renders stay self-contained.'),
   beats: z.array(z.number()).optional().describe('Music beat frames (filled by the pipeline) for beat-synced accents.'),
   showCaptions: z.boolean(),
   music: z.string().describe('Music path inside public/, empty = none.'),

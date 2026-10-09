@@ -4,13 +4,16 @@ import {parseArgs} from 'node:util';
 import {formats, type Format} from '../src/schema';
 import {config} from './config';
 import {make, reformat, renderVersion, revise, type BuildOptions, type CreativeOptions} from './produce';
-import {packIds, type PackId} from '../src/design/packs';
+import {packIds} from '../src/design/packs';
+import {isStyleId} from './styles';
 import {jobDir, latestJobId, ledgerFile, loadJob} from './jobs';
 import {Ledger} from './ledger';
 import {listClients} from './render';
 import {bench} from './bench';
 import type {Dialect, Lang} from './prompts';
 import {getTemplate} from './library';
+import {createInterface} from 'node:readline';
+import {setPin, validPin} from './auth';
 
 const HELP = `Motion Studio pipeline
 
@@ -22,6 +25,7 @@ const HELP = `Motion Studio pipeline
   npm run cost -- [<job>]                             token/char usage and cost per model
   npm run clients                                     list client profiles (edit them in the Studio)
   npm run batch -- ideas.json                         many videos: [{"idea", "client", "format"?, "dialect"?}]
+  npm run pin                                         set or reset the studio login PIN (6 digits; logs out every device)
   npm run dashboard                                   local web UI on http://localhost:4777
   npm run bench -- --writers ds/deepseek-flash,mimotp/mimo-v2.5-pro [--limit 5]
 
@@ -106,12 +110,12 @@ const templateForCli = (id: string) => {
 };
 
 const creativeOptions = (): CreativeOptions => {
-  if (values.style && !packIds.includes(values.style as PackId)) throw new Error(`--style must be one of ${packIds.join(', ')}`);
+  if (values.style && !isStyleId(values.style)) throw new Error(`--style must be one of ${packIds.join(', ')} or a saved custom style id`);
   return {
     hooks: tier !== 'draft',
     critic: tier !== 'draft',
     variants: values.variants ? Math.max(1, Math.min(5, Number(values.variants) || 1)) : tier === 'premium' ? 3 : 1,
-    style: values.style as PackId | undefined,
+    style: values.style,
     musicChoice: values.music,
     url: values.url,
     brandTheme: values['brand-theme'],
@@ -189,6 +193,21 @@ const main = async () => {
     case 'cost': {
       const {id} = jobArg(args, false);
       printCost(new Ledger(ledgerFile(id)).summary());
+      return;
+    }
+    case 'pin': {
+      const ask = (q: string) =>
+        new Promise<string>((resolve) => {
+          const rl = createInterface({input: process.stdin, output: process.stdout, terminal: true});
+          const w = (rl as unknown as {_writeToOutput: (s: string) => void});
+          w._writeToOutput = (t) => (t.includes(q) ? process.stdout.write(t) : undefined); // hide what is typed
+          rl.question(q, (a) => (rl.close(), process.stdout.write('\n'), resolve(a.trim())));
+        });
+      const pin = await ask('New 6-digit PIN: ');
+      if (!validPin(pin)) throw new Error('the PIN must be exactly 6 digits');
+      if ((await ask('Repeat the PIN: ')) !== pin) throw new Error('the PINs do not match');
+      setPin(pin);
+      console.log('✓ PIN saved. Every device must log in again.');
       return;
     }
     case 'clients': {

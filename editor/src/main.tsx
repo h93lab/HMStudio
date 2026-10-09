@@ -10,7 +10,9 @@ import {EditorPage} from './pages/Editor';
 import {ProjectsPage} from './pages/Projects';
 import {QueuePage} from './pages/Queue';
 import {ReviewPage} from './pages/Review';
+import {LoginPage} from './pages/Login';
 import {SettingsPage} from './pages/Settings';
+import {StylesPage} from './pages/Styles';
 import {TemplatesPage} from './pages/Templates';
 import './index.css';
 
@@ -24,9 +26,12 @@ const ROUTES: [string, React.FC<{params: Record<string, string>}>][] = [
   ['/clients/:id', ClientsPage],
   ['/assets', AssetsPage],
   ['/templates', TemplatesPage],
+  ['/styles', StylesPage],
+  ['/styles/:id', StylesPage],
   ['/queue', QueuePage],
   ['/settings', SettingsPage],
   ['/review/:id', ReviewPage],
+  ['/login', LoginPage],
 ];
 
 const App = () => {

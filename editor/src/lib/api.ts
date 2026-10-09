@@ -116,7 +116,7 @@ export type ExportRequest = {v: number; formats: Format[]};
 
 export type Options = {
   formats: Format[];
-  styles: {id: string; label: string}[];
+  styles: {id: string; label: string; custom?: boolean}[]; // built-in packs first, then saved custom styles
   music: string[];
   voices: string[];
   sceneTypes: string[];
@@ -134,7 +134,25 @@ export type Review = {
   comments: {id: string; time: number; text: string; author: string; at: string; scene: number}[];
 };
 
-export class ApiError extends Error {}
+// A style pack = the motion personality of a video (src/design/packs.ts `Pack`).
+export type Pack = import('../../../src/design/packs').Pack;
+export type CustomStyle = {id: string; name: string; prompt: string; pack: Pack; createdAt: string; updatedAt?: string};
+export type StyleInput = {name: string; prompt: string; pack: Pack};
+
+// Design system import: the AI maps an uploaded design system onto a client theme. Nothing is saved until the client is saved.
+export type DesignImport = {theme: Theme; notes: string[]; source: string[]}; // notes: mapping decisions (e.g. font substitutions); source: files read
+
+export type AuthState = {authenticated: boolean; pinSet: boolean; canSetPin: boolean}; // canSetPin: only from the Mac itself (localhost)
+
+// Thrown for 401 so pages can send the user to /login.
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status = 0,
+  ) {
+    super(message);
+  }
+}
 
 const req = async <T>(method: string, url: string, body?: unknown): Promise<T> => {
   const r = await fetch(url, {method, headers: body === undefined ? {} : {'content-type': 'application/json'}, body: body === undefined ? undefined : JSON.stringify(body)});
@@ -143,9 +161,12 @@ const req = async <T>(method: string, url: string, body?: unknown): Promise<T> =
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
-    throw new ApiError(text.slice(0, 200) || r.statusText);
+    throw new ApiError(text.slice(0, 200) || r.statusText, r.status);
   }
-  if (!r.ok) throw new ApiError((data as {error?: string}).error ?? r.statusText);
+  if (r.status === 401 && !url.startsWith('/api/auth/') && !location.pathname.startsWith('/review/') && !location.pathname.startsWith('/login')) {
+    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  }
+  if (!r.ok) throw new ApiError((data as {error?: string}).error ?? r.statusText, r.status);
   return data as T;
 };
 
@@ -184,14 +205,31 @@ export const api = {
   uploadAsset: async (client: string, file: File) => {
     const r = await fetch(`/api/assets?client=${encodeURIComponent(client)}`, {method: 'POST', headers: {'x-filename': encodeURIComponent(file.name), 'content-type': file.type || 'application/octet-stream'}, body: file});
     const data = await r.json().catch(() => ({error: r.statusText}));
-    if (!r.ok) throw new ApiError(data.error ?? r.statusText);
+    if (!r.ok) throw new ApiError(data.error ?? r.statusText, r.status);
     return data as Asset;
+  },
+  // Raw upload of a design system export (zip, md, css, json, html, txt); returns a proposed theme, not saved.
+  importDesignSystem: async (client: string, file: File) => {
+    const r = await fetch(`/api/clients/${encodeURIComponent(client)}/design-system`, {method: 'POST', headers: {'x-filename': encodeURIComponent(file.name), 'content-type': file.type || 'application/octet-stream'}, body: file});
+    const data = await r.json().catch(() => ({error: r.statusText}));
+    if (!r.ok) throw new ApiError(data.error ?? r.statusText, r.status);
+    return data as DesignImport;
   },
   deleteAsset: (client: string, name: string) => req<{ok: true}>('DELETE', `/api/assets?client=${encodeURIComponent(client)}&name=${encodeURIComponent(name)}`),
 
   templates: () => req<Template[]>('GET', '/api/templates'),
   saveTemplate: (body: TemplateInput) => req<Template>('POST', '/api/templates', body),
   deleteTemplate: (id: string) => req<{ok: true}>('DELETE', `/api/templates/${id}`),
+
+  styles: () => req<CustomStyle[]>('GET', '/api/styles'),
+  generateStyle: (prompt: string, base?: Pack) => req<{pack: Pack; notes: string[]}>('POST', '/api/styles/generate', {prompt, base}), // AI draft, not saved
+  saveStyle: (body: StyleInput, id?: string) => req<CustomStyle>(id ? 'PUT' : 'POST', id ? `/api/styles/${id}` : '/api/styles', body),
+  deleteStyle: (id: string) => req<{ok: true}>('DELETE', `/api/styles/${id}`),
+
+  auth: () => req<AuthState>('GET', '/api/auth/state'),
+  login: (pin: string) => req<{ok: true}>('POST', '/api/auth/login', {pin}),
+  logout: () => req<{ok: true}>('POST', '/api/auth/logout', {}),
+  setPin: (pin: string, current?: string) => req<{ok: true}>('POST', '/api/auth/pin', {pin, current}), // first set (localhost only) or change (needs current)
 
   review: (id: string, token: string) => req<Review>('GET', `/api/review/${id}?t=${encodeURIComponent(token)}`),
   comment: (id: string, body: {token: string; time: number; v: number; author: string; text: string}) => req<{ok: true}>('POST', `/api/jobs/${id}/comments`, body),

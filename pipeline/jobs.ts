@@ -62,9 +62,9 @@ export const newJobId = (idea: string, now = new Date()) => {
 };
 
 // Write-then-rename so readers (the dashboard) never see a half-written file.
-export const writeAtomic = (file: string, data: string) => {
+export const writeAtomic = (file: string, data: string, mode?: number) => {
   const tmp = `${file}.${process.pid}.tmp`;
-  writeFileSync(tmp, data);
+  writeFileSync(tmp, data, mode === undefined ? undefined : {mode}); // mode at creation: secrets are never briefly world-readable
   renameSync(tmp, file);
 };
 

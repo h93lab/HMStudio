@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {themeSchema, type Theme, type VideoProps} from '../src/schema';
-import {packIds} from '../src/design/packs';
+import {isStyleId} from './styles';
 import {formats} from '../src/schema';
 import {ROOT} from './config';
 import {writeAtomic} from './jobs';
@@ -25,7 +25,7 @@ export const cleanDefaults = (raw: unknown): Defaults => {
   const out: Defaults = {};
   const str = (k: string) => (typeof d[k] === 'string' ? (d[k] as string).trim() : '');
   if (str('style')) {
-    if (!packIds.includes(str('style') as never)) throw new Error('bad style');
+    if (!isStyleId(str('style')!)) throw new Error('bad style');
     out.style = str('style');
   }
   if (str('music')) {

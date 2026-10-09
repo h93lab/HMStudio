@@ -106,6 +106,7 @@ export const SettingsPage: React.FC<{params: Record<string, string>}> = () => {
               </div>
             ))}
           </section>
+          <SecurityCard />
           <div className="flex gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -204,5 +205,49 @@ const RoleCard: React.FC<{role: string; label: string; chain: string[]; custom: 
         </p>
       )}
     </section>
+  );
+};
+
+const PIN_RE = /^\d{6}$/;
+
+const SecurityCard = () => {
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const digits = (set: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value.replace(/\D/g, '').slice(0, 6));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!PIN_RE.test(current) || !PIN_RE.test(next)) return void toast.error('A PIN is exactly 6 digits');
+    if (next !== confirm) return void toast.error('The new PINs do not match');
+    setBusy(true);
+    try {
+      await api.setPin(next, current);
+      toast.success('PIN changed. Other devices were logged out.');
+      setCurrent('');
+      setNext('');
+      setConfirm('');
+    } catch (err) {
+      toast.error(errMsg(err));
+    }
+    setBusy(false);
+  };
+
+  const field = (id: string, label: string, value: string, set: (v: string) => void, auto: string) => (
+    <Field label={label} htmlFor={id}>
+      <Input id={id} type="password" inputMode="numeric" autoComplete={auto} maxLength={6} value={value} onChange={digits(set)} className="bg-panel" />
+    </Field>
+  );
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-3 rounded-2xl border bg-card p-4" aria-label="Security">
+      <h2 className="font-title text-sm text-muted-foreground">Security</h2>
+      {field('pin-current', 'Current PIN', current, setCurrent, 'current-password')}
+      {field('pin-new', 'New PIN (6 digits)', next, setNext, 'new-password')}
+      {field('pin-confirm', 'Confirm new PIN', confirm, setConfirm, 'new-password')}
+      <Button type="submit" variant="outline" disabled={busy || !PIN_RE.test(current) || !PIN_RE.test(next) || next !== confirm}>
+        {busy && <Loader2 className="animate-spin" />} Change PIN
+      </Button>
+    </form>
   );
 };

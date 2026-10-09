@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {Archive, ArchiveRestore, Copy, Save} from 'lucide-react';
+import {Archive, ArchiveRestore, Copy, Save, Wand2} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -13,6 +13,7 @@ import {COLOR_KEYS, validateTheme} from './brand';
 import {errMsg, formatBytes, Pick, useLoad} from './common';
 import {contrast, isHex, toInputHex} from './contrast';
 import {DuplicateDialog} from './ClientDialogs';
+import {DesignImportDialog} from './DesignImportDialog';
 
 type Draft = {theme: Theme; defaults: ClientProfile['defaults']};
 const fromProfile = (p: ClientProfile): Draft => ({theme: p.theme, defaults: p.defaults ?? {}});
@@ -50,6 +51,7 @@ export const ClientEditor: React.FC<{profile: ClientProfile; onChanged: (nextId?
   const [draft, setDraft] = useState<Draft>(saved);
   const [busy, setBusy] = useState(false);
   const [dup, setDup] = useState(false);
+  const [importing, setImporting] = useState(false);
   const options = useLoad(() => api.options(), []);
   const logos = useLoad(() => api.assets(profile.id).then((a) => a.filter((x) => x.kind === 'logo')), [profile.id]);
 
@@ -121,6 +123,9 @@ export const ClientEditor: React.FC<{profile: ClientProfile; onChanged: (nextId?
             {dirty && <span className="ms-2 text-amber-400">● Unsaved changes</span>}
           </div>
         </div>
+        <Button variant="outline" onClick={() => setImporting(true)}>
+          <Wand2 /> Import design system
+        </Button>
         <Button variant="outline" onClick={archive}>
           {profile.archived ? <ArchiveRestore /> : <Archive />}
           {profile.archived ? 'Unarchive' : 'Archive'}
@@ -224,6 +229,17 @@ export const ClientEditor: React.FC<{profile: ClientProfile; onChanged: (nextId?
         <BrandPreview theme={theme} />
       </Section>
 
+      <DesignImportDialog
+        open={importing}
+        onOpenChange={setImporting}
+        clientId={profile.id}
+        current={theme}
+        onApply={(t) => {
+          // Keep the client's own name and logo; the import only brings colors, type and shape.
+          setDraft((d) => ({...d, theme: {...d.theme, ...t, client: d.theme.client, logo: d.theme.logo}}));
+          toast.success('Design system applied. Review it, then Save.');
+        }}
+      />
       <DuplicateDialog open={dup} onOpenChange={setDup} sourceId={profile.id} onDone={onChanged} />
     </div>
   );

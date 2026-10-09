@@ -1,4 +1,4 @@
-import type {DisplayFont} from '../schema';
+import {z} from 'zod';
 
 // Style packs = the motion personality of a video, separate from brand colors (theme).
 // Everything here is data so the AI (and the editor) only ever pick a pack by name.
@@ -15,24 +15,30 @@ export type CameraMode = (typeof cameraModes)[number];
 export const transitionNames = ['pushCut', 'slide', 'wipe', 'fade', 'iris', 'clockWipe', 'zoomBlur', 'crossZoom', 'linearBlur', 'filmBurn'] as const;
 export type TransitionName = (typeof transitionNames)[number];
 
+// Display faces for titles (style packs pick one; 'none' = brand font everywhere). Lives here so schema.ts can import without a cycle.
+export const displayFonts = ['none', 'Reem Kufi', 'Lalezar', 'Changa', 'El Messiri', 'Kufam', 'Marhey', 'Rakkas', 'Aref Ruqaa'] as const;
+export type DisplayFont = (typeof displayFonts)[number];
+
 export type Bezier = [number, number, number, number];
 
-export type Pack = {
-  label: string;
-  ease: Bezier; // entrance curve
-  overshoot: number; // 0 = none; >0 = back-out overshoot amount
-  enterFrames: number; // entrance length at motion.speed = 1
-  stagger: {each: number; from: 'start' | 'center' | 'end'};
-  camera: {mode: CameraMode; intensity: number};
-  transitions: TransitionName[]; // rotated between scenes
-  transitionFrames: number;
-  backgrounds: BackgroundName[]; // rotated between scenes
-  finish: {grain: number; vignette: number; leaks: number; chroma: number};
-  reveal: 'blur' | 'rise' | 'wipe' | 'scale';
-  displayFont: DisplayFont; // 'none' = brand font for titles too
-  tracking: number; // title letter-spacing in em (Latin only; Arabic stays 0 to keep joining)
-  accent: 'underline' | 'bracket' | 'glow';
-};
+// Validates a pack (built-in or AI/user-made) with safe ranges; custom packs travel inside a video's props.
+export const packSchema = z.object({
+  label: z.string().min(1).max(40),
+  ease: z.tuple([z.number().min(0).max(1), z.number().min(-1).max(2), z.number().min(0).max(1), z.number().min(-1).max(2)]),
+  overshoot: z.number().min(0).max(0.6),
+  enterFrames: z.number().min(8).max(60),
+  stagger: z.object({each: z.number().min(0).max(10), from: z.enum(['start', 'center', 'end'])}),
+  camera: z.object({mode: z.enum(cameraModes), intensity: z.number().min(0).max(1.5)}),
+  transitions: z.array(z.enum(transitionNames)).min(1).max(8),
+  transitionFrames: z.number().min(8).max(40),
+  backgrounds: z.array(z.enum(backgroundNames)).min(1).max(6),
+  finish: z.object({grain: z.number().min(0).max(1), vignette: z.number().min(0).max(1), leaks: z.number().min(0).max(1), chroma: z.number().min(0).max(1)}),
+  reveal: z.enum(['blur', 'rise', 'wipe', 'scale']),
+  displayFont: z.enum(displayFonts),
+  tracking: z.number().min(-0.05).max(0.1),
+  accent: z.enum(['underline', 'bracket', 'glow']),
+});
+export type Pack = z.infer<typeof packSchema>;
 
 export const packs: Record<PackId, Pack> = {
   'premium-tech': {

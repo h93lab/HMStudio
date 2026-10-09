@@ -5,7 +5,8 @@ import {ROOT, config} from './config';
 import {makeBrief} from './director';
 import {critiqueScript, hookTournament} from './hooks';
 import {brandTheme, factsBlock, fetchBrand, findInventedNumbers} from './brand';
-import {packIds, type PackId} from '../src/design/packs';
+import {isStyleId, resolvePack} from './styles';
+import {packIds} from '../src/design/packs';
 import {dropInventedUrls, requestStoryboard, validateStoryboard} from './storyboard';
 import {revisePrompt, writerPrompt, type Dialect, type Lang} from './prompts';
 import {defaultVoice, voiceScenes} from './voice';
@@ -19,7 +20,7 @@ import {jobDir, ledgerFile, loadJob, loadProps, newJobId, saveJob, saveProps, ve
 
 export type BuildOptions = {voice: boolean; images: boolean; music: boolean; captions: boolean; video: boolean; qa: boolean; qaFix: boolean};
 // Creative options only `make` uses (hook tournament, script critic, A/B variants).
-export type CreativeOptions = {hooks: boolean; critic: boolean; variants: number; style?: PackId; musicChoice?: string; url?: string; brandTheme?: boolean; template?: {id: string; scenes: {type: string; seconds: number}[]}};
+export type CreativeOptions = {hooks: boolean; critic: boolean; variants: number; style?: string; musicChoice?: string; url?: string; brandTheme?: boolean; template?: {id: string; scenes: {type: string; seconds: number}[]}};
 
 const log = (msg: string) => console.log(msg);
 
@@ -57,6 +58,15 @@ const deepMerge = <T>(base: T, patch: unknown): T => {
 };
 
 // Assets → props → stills → QA → (optional auto-fix) → video → review page. Each call creates one new version.
+const lastPack = (job: Job) => {
+  const last = job.versions.at(-1);
+  try {
+    return last ? loadProps(job.id, last.v).pack : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const buildVersion = async (job: Job, scenes: Scene[], theme: Theme, opts: BuildOptions, ledger: Ledger, meta: {feedback?: string; models: Record<string, string>; variant?: string; critic?: {score: number; issues: string[]}}): Promise<Version> => {
   const defaults = await clientDefaults(job.client);
   const v = (job.versions.at(-1)?.v ?? 0) + 1;
@@ -91,10 +101,13 @@ const buildVersion = async (job: Job, scenes: Scene[], theme: Theme, opts: Build
       log(`  music: ${preset} (${track.bpm} bpm, cuts on the beat)`);
     }
   }
+  const styleId: string = job.style ?? defaults.style;
   const props: VideoProps = videoSchema.parse({
     ...defaults,
     theme,
-    style: (job.style as PackId) ?? defaults.style,
+    style: styleId,
+    // Custom styles are embedded so renders stay self-contained; if the style was deleted since, keep the last version's pack.
+    pack: (packIds as readonly string[]).includes(styleId) ? undefined : (resolvePack(styleId) ?? lastPack(job)),
     format: job.format,
     showCaptions: opts.captions,
     music,
@@ -216,7 +229,7 @@ export const make = async (input: MakeInput) => {
   job.brief = brief;
   saveJob(job);
   job.images = input.images;
-  const directorStyle = packIds.includes(brief.style as PackId) ? (brief.style as PackId) : undefined;
+  const directorStyle = typeof brief.style === 'string' && isStyleId(brief.style) ? brief.style : undefined;
   job.style = input.style ?? directorStyle ?? defaults.style;
   job.music = input.musicChoice ?? (musicPresets.includes(brief.music as MusicPreset) ? (brief.music as string) : undefined);
   log(`  style: ${job.style} · music: ${job.music ?? 'profile default'}`);
@@ -359,10 +372,13 @@ export const saveManual = async (id: string, edited: VideoProps, locks: Locks, n
   const job = loadJob(id);
   const parsed = videoSchema.safeParse(edited);
   if (!parsed.success) throw new Error(parsed.error.issues.slice(0, 5).map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
-  const props = parsed.data;
+  const before = job.versions.at(-1) ? loadProps(id, job.versions.at(-1)!.v) : undefined;
+  // Built-in style: no embedded pack. Custom style: embed it (re-resolved when the editor switched style) so the version stays self-contained.
+  const builtIn = (packIds as readonly string[]).includes(parsed.data.style);
+  const props = {...parsed.data, pack: builtIn ? undefined : before?.style === parsed.data.style && parsed.data.pack ? parsed.data.pack : resolvePack(parsed.data.style) ?? parsed.data.pack};
   const ledger = new Ledger(ledgerFile(id));
   // Unchanged narration keeps its existing audio + captions + timing; only new or edited lines are voiced.
-  const prev = job.versions.at(-1) ? loadProps(id, job.versions.at(-1)!.v).scenes : [];
+  const prev = before?.scenes ?? [];
   const recorded = new Map(prev.filter((s) => s.voiceover && s.audio).map((s) => [s.voiceover!.trim(), s]));
   const fresh = props.scenes.map((s) => {
     const old = s.voiceover ? recorded.get(s.voiceover.trim()) : undefined;

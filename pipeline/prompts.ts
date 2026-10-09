@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {iconNames, sceneSchema} from '../src/schema';
 import {packIds, packs} from '../src/design/packs';
+import {listStyles} from './styles';
 import {musicPresets} from './music';
 
 export type Lang = 'ar' | 'en';
@@ -56,7 +57,7 @@ Rules:
 - Speak to one specific audience and one main benefit.
 
 Pick the music mood: ${musicPresets.join(', ')}.
-Pick the visual style pack that fits the brand and audience: ${packIds.map((id) => `"${id}" (${packs[id].label})`).join(', ')}.
+Pick the visual style pack that fits the brand and audience: ${[...packIds.map((id) => `"${id}" (${packs[id].label})`), ...listStyles().map((x) => `"${x.id}" (${x.name}: ${x.prompt.replace(/\s+/g, ' ').slice(0, 120)})`)].join(', ')}.
 
 Return JSON:
 {"audience": string, "insight": string, "angle": string, "style": one of the style packs, "music": one of the music moods, "hookOptions": [5 strings], "hook": string, "tone": string, "voiceStyle": string, "cta": string,

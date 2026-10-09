@@ -17,6 +17,7 @@ import {ExportDialog} from '@/components/editor/ExportDialog';
 import {FieldEditor} from '@/components/editor/FieldEditor';
 import {Timeline} from '@/components/editor/Timeline';
 import {HIDDEN, blank, moveLocks, sceneLabel, sceneTypes, shapeFor} from '@/components/editor/model';
+import {useLoad} from '@/components/library/common';
 import {api, type JobSummary} from '@/lib/api';
 import {Link, navigate, useLocation} from '@/lib/router';
 import {cn} from '@/lib/utils';
@@ -45,10 +46,12 @@ export const EditorPage: React.FC<{params: Record<string, string>}> = ({params})
   const [playing, setPlaying] = useState(false);
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const player = useRef<PlayerRef>(null);
+  const customStyles = useLoad(() => api.styles(), []);
   const alive = useRef(true);
   useEffect(() => () => void (alive.current = false), []);
 
   const props = history[cursor]?.props;
+  const customPack = !!(props as {pack?: unknown} | undefined)?.pack; // VideoProps.pack (custom style) is set by another agent in src/schema.ts
   const locks = history[cursor]?.locks ?? [];
   const dirty = cursor > 0;
 
@@ -387,8 +390,13 @@ export const EditorPage: React.FC<{params: Record<string, string>}> = ({params})
             <h2 className="mb-2 font-title text-sm">Style pack</h2>
             <div className="flex flex-wrap gap-1.5">
               {packIds.map((p) => (
-                <Button key={p} size="sm" variant={props.style === p ? 'default' : 'outline'} onClick={() => change({...props, style: p})}>
+                <Button key={p} size="sm" variant={props.style === p && !customPack ? 'default' : 'outline'} onClick={() => change({...props, style: p, pack: undefined})}>
                   {packs[p].label}
+                </Button>
+              ))}
+              {(customStyles.data ?? []).map((c) => (
+                <Button key={c.id} size="sm" dir="auto" variant={props.style === c.id ? 'default' : 'outline'} onClick={() => change({...props, style: c.id, pack: c.pack})}>
+                  {c.name}
                 </Button>
               ))}
             </div>

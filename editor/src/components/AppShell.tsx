@@ -1,5 +1,6 @@
-import {Play, Plus} from 'lucide-react';
+import {LogOut, Play, Plus} from 'lucide-react';
 import {Button} from '@/components/ui/button';
+import {api} from '@/lib/api';
 import {Link, navigate, useLocation} from '@/lib/router';
 import {cn} from '@/lib/utils';
 
@@ -8,6 +9,7 @@ const NAV = [
   {href: '/clients', label: 'Clients'},
   {href: '/assets', label: 'Assets'},
   {href: '/templates', label: 'Templates'},
+  {href: '/styles', label: 'Styles'},
   {href: '/queue', label: 'Queue'},
   {href: '/settings', label: 'AI models'},
 ];
@@ -41,6 +43,9 @@ export const AppShell: React.FC<{children: React.ReactNode; actions?: React.Reac
               <Plus /> New video
             </Button>
           )}
+          <Button variant="ghost" size="icon" aria-label="Log out" title="Log out" onClick={() => void api.logout().finally(() => location.assign('/login'))}>
+            <LogOut />
+          </Button>
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
       </div>

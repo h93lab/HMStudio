@@ -12,7 +12,7 @@ import {crossZoom} from '@remotion/transitions/cross-zoom';
 import {linearBlur} from '@remotion/transitions/linear-blur';
 import {filmBurn} from '@remotion/transitions/film-burn';
 import {FPS, TRANSITION, formats, sceneStarts, totalDuration, type VideoProps} from '../schema';
-import {packs, type Pack, type TransitionName} from '../design/packs';
+import {packs, type Pack, type PackId, type TransitionName} from '../design/packs';
 import {PackProvider, ThemeProvider, displayFontName} from '../design/theme';
 import {loadBrandFont} from '../design/fonts';
 import {SceneBackground} from '../components/Backgrounds';
@@ -69,8 +69,8 @@ const presentation = (name: TransitionName, ctx: {accent: string; enterFrom: 'fr
 };
 
 // Data in, video out: scenes with per-scene background + virtual camera, pack transitions, voice, captions, music, SFX and a film finish.
-export const SceneEngine: React.FC<VideoProps> = ({theme, style, scenes, showCaptions, music, musicVolume, sfx, format, beats}) => {
-  const pack: Pack = packs[style] ?? packs['premium-tech'];
+export const SceneEngine: React.FC<VideoProps> = ({theme, style, pack: embedded, scenes, showCaptions, music, musicVolume, sfx, format, beats}) => {
+  const pack: Pack = embedded ?? packs[style as PackId] ?? packs['premium-tech'];
   const {width, height} = formats[format];
   const timing = linearTiming({durationInFrames: TRANSITION});
   const enterFrom = theme.direction === 'rtl' ? 'from-left' : 'from-right';

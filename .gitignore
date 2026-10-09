@@ -9,3 +9,4 @@ bench/results
 # build output
 editor/dist
 *.master.mp4
+auth.json

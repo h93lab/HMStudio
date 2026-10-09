@@ -11,6 +11,7 @@ const tmp = mkdtempSync(path.join(os.tmpdir(), 'motion-server-'));
 process.env.MOTION_PROFILES = path.join(tmp, 'profiles.json');
 process.env.MOTION_TEMPLATES = path.join(tmp, 'templates.json');
 process.env.MOTION_PUBLIC = path.join(tmp, 'public');
+process.env.MOTION_AUTH = path.join(tmp, 'auth.json');
 copyFileSync(path.join(import.meta.dirname, '..', 'src', 'profiles.json'), process.env.MOTION_PROFILES);
 copyFileSync(path.join(import.meta.dirname, '..', 'templates.json'), process.env.MOTION_TEMPLATES);
 
@@ -19,6 +20,9 @@ config.dirs.jobs = path.join(tmp, 'jobs');
 mkdirSync(config.dirs.jobs, {recursive: true});
 const server = await import('../pipeline/server');
 const lib = await import('../pipeline/library');
+const auth = await import('../pipeline/auth');
+auth.setPin('123456');
+let cookie = '';
 
 let http: Server;
 let base = '';
@@ -28,6 +32,8 @@ before(async () => {
   const port = (http.address() as AddressInfo).port;
   server.allowedHosts.add(`localhost:${port}`);
   base = `http://localhost:${port}`;
+  const login = await fetch(base + '/api/auth/login', {method: 'POST', headers: {origin: base, 'content-type': 'application/json'}, body: JSON.stringify({pin: '123456'})});
+  cookie = login.headers.get('set-cookie')!.split(';')[0];
 });
 after(() => {
   http.close();
@@ -36,7 +42,7 @@ after(() => {
 
 const call = async (method: string, url: string, body?: unknown, headers: Record<string, string> = {}) => {
   const raw = body instanceof Buffer || typeof body === 'string';
-  const r = await fetch(base + url, {method, headers: {origin: base, ...(body !== undefined && !raw ? {'content-type': 'application/json'} : {}), ...headers}, body: body === undefined ? undefined : typeof body === 'string' ? body : body instanceof Buffer ? new Uint8Array(body) : JSON.stringify(body)});
+  const r = await fetch(base + url, {method, headers: {origin: base, cookie, ...(body !== undefined && !raw ? {'content-type': 'application/json'} : {}), ...headers}, body: body === undefined ? undefined : typeof body === 'string' ? body : body instanceof Buffer ? new Uint8Array(body) : JSON.stringify(body)});
   const text = await r.text();
   let data: any = text;
   try {
@@ -49,7 +55,7 @@ const call = async (method: string, url: string, body?: unknown, headers: Record
 
 test('rejects untrusted hosts and writes without an Origin', async () => {
   const status = (host: string) =>
-    new Promise<number>((resolve) => httpRequest(base + '/api/jobs', {headers: {host}}, (r) => (r.resume(), resolve(r.statusCode!))).end());
+    new Promise<number>((resolve) => httpRequest(base + '/api/jobs', {headers: {host, cookie}}, (r) => (r.resume(), resolve(r.statusCode!))).end());
   assert.equal(await status('evil.test'), 403);
   assert.equal(await status(base.replace('http://', '')), 200);
   assert.equal((await fetch(base + '/api/clients/zz', {method: 'PUT', body: '{}'})).status, 403);
@@ -144,10 +150,10 @@ test('asset upload: streamed, deduped, validated; traversal impossible', async (
   assert.equal((await call('DELETE', '/api/assets?client=nova&name=Nova_Logo.png')).status, 200);
   assert.equal((await call('DELETE', '/api/assets?client=nova&name=Nova_Logo.png')).status, 400);
 
-  const got = await fetch(base + '/clients/nova/assets/evil.png');
+  const got = await fetch(base + '/clients/nova/assets/evil.png', {headers: {cookie}});
   assert.equal(got.status, 200);
   assert.match(got.headers.get('content-security-policy') ?? '', /sandbox/);
-  assert.equal((await fetch(base + '/files/..%2F..%2Fetc%2Fpasswd')).status, 404);
+  assert.equal((await fetch(base + '/files/..%2F..%2Fetc%2Fpasswd', {headers: {cookie}})).status, 404);
 });
 
 test('run status is derived from the log', () => {
