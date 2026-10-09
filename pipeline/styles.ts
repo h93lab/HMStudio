@@ -1,7 +1,7 @@
 import {existsSync, readFileSync} from 'node:fs';
 import path from 'node:path';
 import {z} from 'zod';
-import {packIds, packs, packSchema, backgroundNames, cameraModes, displayFonts, transitionNames, type Pack, type PackId} from '../src/design/packs';
+import {packIds, packs, packSchema, backgroundNames, cameraModes, displayFonts, transitionNames, usableTransitions, type Pack, type PackId} from '../src/design/packs';
 import {config, ROOT} from './config';
 import {writeAtomic} from './jobs';
 import {chat, extractJson, type ChatFn, type Message} from './llm';
@@ -74,7 +74,7 @@ const GUIDE = `A style pack is the motion personality of a video (not its colors
 - enterFrames: 8..60, entrance length at 30fps (14 = punchy, 30 = calm).
 - stagger: {each: 0..10 frames between items, from: "start"|"center"|"end"}.
 - camera: {mode: ${cameraModes.join('|')}, intensity: 0..1.5} slow virtual camera move.
-- transitions: 1-8 names from [${transitionNames.join(', ')}], rotated between scenes (repeat to weight).
+- transitions: 1-8 names from [${usableTransitions.join(', ')}], rotated between scenes (repeat to weight).
 - transitionFrames: 8..40, transition length.
 - backgrounds: 1-6 names from [${backgroundNames.join(', ')}], rotated between scenes.
 - finish: {grain, vignette, leaks (light leaks), chroma (chromatic aberration)}, each 0..1.

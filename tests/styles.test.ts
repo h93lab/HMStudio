@@ -9,7 +9,7 @@ import {promisify} from 'node:util';
 const tmp = mkdtempSync(path.join(os.tmpdir(), 'styles-'));
 process.env.MOTION_STYLES = path.join(tmp, 'styles.json');
 
-const {packs, packIds, packSchema} = await import('../src/design/packs');
+const {packs, packIds, packSchema, usableTransitions} = await import('../src/design/packs');
 const {saveStyle, listStyles, deleteStyle, generatePack, styleOptions, isStyleId, resolvePack} = await import('../pipeline/styles');
 const {importDesignSystem} = await import('../pipeline/designSystem');
 const {videoSchema} = await import('../src/schema');
@@ -115,4 +115,9 @@ test('a corrupt styles.json never breaks the studio', () => {
   writeFileSync(process.env.MOTION_STYLES!, JSON.stringify([{id: 'ok-style', name: 'Ok', prompt: '', pack: packs.editorial, createdAt: ''}, {id: 'Bad Id', name: 'x', pack: packs.editorial}, {id: 'no-pack', name: 'x'}]));
   assert.deepEqual(listStyles().map((s) => s.id), ['ok-style']);
   writeFileSync(process.env.MOTION_STYLES!, '[]');
+});
+
+test('no built-in pack or style form offers linearBlur (it hangs parallel renders)', () => {
+  for (const [id, p] of Object.entries(packs)) assert.ok(!p.transitions.includes('linearBlur'), id);
+  assert.ok(!usableTransitions.includes('linearBlur' as never));
 });

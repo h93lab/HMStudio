@@ -206,3 +206,11 @@ test('validateStoryboard enforces a template scene order', () => {
   assert.equal(r.ok, false);
   if (!r.ok) assert.ok(r.errors.some((e) => e.includes('template requires')), r.errors.join('|'));
 });
+
+test('validateStoryboard refuses a phone number as a stat', () => {
+  const raw = good();
+  (raw.scenes as Record<string, unknown>[]).splice(1, 0, {type: 'stat', duration: 90, prefix: '600 ', value: 566119, suffix: '', label: 'Call us'});
+  const r = validateStoryboard(raw);
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.ok(r.errors.some((e) => e.includes('phone number')), r.errors.join('|'));
+});

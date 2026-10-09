@@ -21,7 +21,7 @@ export const sceneCatalog = `Scene types (pick what serves the story; vary them)
 - intro: kicker pill + big title + subtitle. Strong opener.
 - statement: one bold sentence filling the screen, with highlighted emphasis words. Great hook or turning point.
 - features: title + 2-4 short benefit cards.
-- stat: one big animated number + label. ONLY with a number given in the idea.
+- stat: one big animated number + label. ONLY with a number given in the idea, and only a quantity (count, %, money, time). Never a phone number, year, ID or code: put those as plain text in a statement or the outro.
 - quote: testimonial with author. ONLY if a real testimonial is given in the idea.
 - comparison: before/after (or old way vs new way) two columns with ✕ / ✓ items.
 - steps: 2-4 numbered steps on a timeline ("how it works").

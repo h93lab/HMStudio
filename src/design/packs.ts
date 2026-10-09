@@ -13,6 +13,9 @@ export const cameraModes = ['static', 'drift', 'push', 'float'] as const;
 export type CameraMode = (typeof cameraModes)[number];
 
 export const transitionNames = ['pushCut', 'slide', 'wipe', 'fade', 'iris', 'clockWipe', 'zoomBlur', 'crossZoom', 'linearBlur', 'filmBurn'] as const;
+// linearBlur hangs the renderer when several frames render in parallel (timeout mid-transition); the engine plays it as a fade.
+// It stays in transitionNames so older videos and saved styles still validate, but nothing new offers it.
+export const usableTransitions = transitionNames.filter((t) => t !== 'linearBlur');
 export type TransitionName = (typeof transitionNames)[number];
 
 // Display faces for titles (style packs pick one; 'none' = brand font everywhere). Lives here so schema.ts can import without a cycle.
@@ -64,7 +67,7 @@ export const packs: Record<PackId, Pack> = {
     enterFrames: 30,
     stagger: {each: 4, from: 'start'},
     camera: {mode: 'push', intensity: 0.35},
-    transitions: ['fade', 'linearBlur', 'fade', 'slide'],
+    transitions: ['fade', 'slide', 'fade', 'wipe'],
     transitionFrames: 22,
     backgrounds: ['minimal', 'spotlight'],
     finish: {grain: 0.08, vignette: 0.35, leaks: 0, chroma: 0},

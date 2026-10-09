@@ -207,6 +207,8 @@ export const make = async (input: MakeInput) => {
   const screens = (input.screens ?? []).map((f, i) => importAsset(job.id, f, `screen-${i + 1}`));
   const clips = (input.clips ?? []).map((f, i) => importAsset(job.id, f, `clip-${i + 1}`));
   let theme = input.logo ? {...defaults.theme, logo: importAsset(job.id, input.logo, 'logo')} : defaults.theme;
+  // The video's language sets direction (an English video for an Arabic brand reads left to right with Latin digits).
+  theme = input.lang === 'en' ? {...theme, direction: 'ltr', numerals: 'latn'} : {...theme, direction: 'rtl'};
   log(`job ${job.id}`);
   // Everything downstream (director, hooks, writer, critic, number guard) grounds on idea + verified site facts.
   let idea = input.idea;

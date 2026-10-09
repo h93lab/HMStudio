@@ -9,7 +9,6 @@ import {clockWipe} from '@remotion/transitions/clock-wipe';
 import {pushCut} from '@remotion/transitions/push-cut';
 import {zoomBlur} from '@remotion/transitions/zoom-blur';
 import {crossZoom} from '@remotion/transitions/cross-zoom';
-import {linearBlur} from '@remotion/transitions/linear-blur';
 import {filmBurn} from '@remotion/transitions/film-burn';
 import {FPS, TRANSITION, formats, sceneStarts, totalDuration, type VideoProps} from '../schema';
 import {packs, type Pack, type PackId, type TransitionName} from '../design/packs';
@@ -49,7 +48,7 @@ const FontGate: React.FC<{fonts: Parameters<typeof loadBrandFont>[0][]; children
 };
 
 type Presentation = TransitionPresentation<Record<string, unknown>>;
-const SHADER: TransitionName[] = ['zoomBlur', 'crossZoom', 'linearBlur', 'filmBurn'];
+const SHADER: TransitionName[] = ['zoomBlur', 'crossZoom', 'filmBurn'];
 
 const presentation = (name: TransitionName, ctx: {accent: string; enterFrom: 'from-left' | 'from-right'; width: number; height: number; seed: number}): Presentation => {
   // Shader transitions need HTML-in-canvas (on in Remotion's render browser); preview browsers without it get a fade.
@@ -63,7 +62,7 @@ const presentation = (name: TransitionName, ctx: {accent: string; enterFrom: 'fr
     case 'clockWipe': return clockWipe({width: ctx.width, height: ctx.height}) as unknown as Presentation;
     case 'zoomBlur': return zoomBlur({}) as unknown as Presentation;
     case 'crossZoom': return crossZoom({}) as unknown as Presentation;
-    case 'linearBlur': return linearBlur({}) as unknown as Presentation;
+    case 'linearBlur': return fade() as unknown as Presentation; // see usableTransitions in design/packs.ts
     case 'filmBurn': return filmBurn({seed: ctx.seed}) as unknown as Presentation;
   }
 };

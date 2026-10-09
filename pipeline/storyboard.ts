@@ -33,6 +33,10 @@ export const validateStoryboard = (raw: unknown, order?: string[]): {ok: true; s
     if (scenes[scenes.length - 1].type !== 'outro') errors.push('the last scene must be type "outro"');
     if (['outro', 'logo'].includes(scenes[0].type)) errors.push('the first scene must be a hook, not logo/outro');
   }
+  // A counter animates and adds thousands separators: digits in prefix/suffix mean a phone number or code, not a quantity.
+  scenes.forEach((s, i) => {
+    if (s.type === 'stat' && /\d/.test(`${s.prefix ?? ''}${s.suffix ?? ''}`)) errors.push(`scenes.${i}: stat is for a quantity; "${s.prefix ?? ''}${s.value}${s.suffix ?? ''}" looks like a phone number or code, put it as text in a statement or the outro`);
+  });
   for (let i = 1; i < scenes.length; i++) if (scenes[i].type === scenes[i - 1].type) errors.push(`scenes.${i}: same type "${scenes[i].type}" twice in a row`);
   for (const s of scenes) {
     if (s.type === 'statement' && s.emphasis) {

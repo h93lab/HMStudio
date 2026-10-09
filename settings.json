@@ -1,1 +1,43 @@
-{}
+{
+  "models": {
+    "director": [
+      "anthropic/claude-opus-5-medium",
+      "mimotp/mimo-v2.5-pro",
+      "antigravity/gemini-3.1-pro-high",
+      "ds/deepseek-flash"
+    ],
+    "writer": [
+      "anthropic/claude-opus-5-medium",
+      "ds/deepseek-flash",
+      "mimotp/mimo-v2.5-pro",
+      "groq/openai/gpt-oss-120b",
+      "cerebras/qwen-3.8-27b"
+    ],
+    "judge": [
+      "anthropic/claude-opus-5-medium",
+      "mimotp/mimo-v2.5-pro",
+      "antigravity/gemini-3.1-pro-high"
+    ],
+    "vision": [
+      "anthropic/claude-opus-5-medium",
+      "antigravity/gemini-3.1-pro-high",
+      "auto/best-vision"
+    ],
+    "image": [
+      "auto/best-vision",
+      "antigravity/gemini-3.1-flash-image",
+      "anthropic/claude-opus-5-medium"
+    ],
+    "video": [
+      "auto/gemini",
+      "veo-free/veo"
+    ],
+    "stt": [
+      "groq/whisper-large-v3",
+      "anthropic/claude-opus-5-medium",
+      "groq/whisper-large-v3-turbo"
+    ]
+  },
+  "voice": "ar-SA-HamedNeural",
+  "voiceRate": "+6%"
+}

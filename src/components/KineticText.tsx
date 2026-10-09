@@ -37,7 +37,11 @@ export const KineticText: React.FC<Props> = ({text: raw, size, maxLines = 3, wid
   const words = text.split(/\s+/).filter(Boolean);
   const rawWords = raw.split(/\s+/).filter(Boolean); // digit localization keeps word positions, so emphasis matches on the originals
   const clean = (w: string) => w.replace(/[.,!?؟،:]/g, '');
-  const hot = new Set((emphasis ?? '').split(/\s+/).map(clean).filter(Boolean));
+  // Emphasis = the exact phrase, once (not every occurrence of its words, e.g. a second "or").
+  const target = (emphasis ?? '').split(/\s+/).map(clean).filter(Boolean);
+  const cleaned = rawWords.map(clean);
+  const start = target.length ? cleaned.findIndex((_, i) => target.every((t, k) => cleaned[i + k] === t)) : -1;
+  const isHot = (i: number) => start >= 0 && i >= start && i < start + target.length;
   const chroma = title ? pack.finish.chroma * 3 * u : 0;
   return (
     // Word order follows the text's own script, so Arabic copy stays correct inside an LTR brand (and vice versa).
@@ -47,7 +51,7 @@ export const KineticText: React.FC<Props> = ({text: raw, size, maxLines = 3, wid
     >
       {words.map((word, i) => (
         <span key={i}>
-          <Word word={word} delay={delay + i * pack.stagger.each} gradient={gradient} hot={!gradient && hot.has(clean(rawWords[i] ?? word))} chroma={chroma} rtl={arabic} />{' '}
+          <Word word={word} delay={delay + i * pack.stagger.each} gradient={gradient} hot={!gradient && isHot(i)} chroma={chroma} rtl={arabic} />{' '}
         </span>
       ))}
     </div>
@@ -78,8 +82,7 @@ const Word: React.FC<{word: string; delay: number; gradient?: boolean; hot?: boo
       style={{
         display: 'inline-block',
         ...motion,
-        ...(shadows.length && !gradient ? {textShadow: shadows.join(', ')} : {}),
-        ...(hot && {color: colors.accent}),
+        ...(shadows.length && !gradient && !hot ? {textShadow: shadows.join(', ')} : {}),
         ...(gradient && {
           // Vertical gradient: every word gets the same look (a horizontal one restarts per word).
           backgroundImage: `linear-gradient(180deg, ${colors.accent} 0%, ${colors.primary} 100%)`,
@@ -90,7 +93,18 @@ const Word: React.FC<{word: string; delay: number; gradient?: boolean; hot?: boo
         }),
       }}
     >
-      {word}
+      {hot ? <HotWord word={word} style={{color: colors.accent, ...(shadows.length ? {textShadow: shadows.join(', ')} : {})}} /> : word}
     </span>
+  );
+};
+
+// Trailing punctuation keeps the normal color, so a highlighted "day," doesn't color its comma.
+const HotWord: React.FC<{word: string; style: React.CSSProperties}> = ({word, style}) => {
+  const [, core, tail] = word.match(/^(.*?)([.,!?؟،:;]*)$/) ?? [word, word, ''];
+  return (
+    <>
+      <span style={style}>{core}</span>
+      {tail}
+    </>
   );
 };

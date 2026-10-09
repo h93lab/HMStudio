@@ -1,7 +1,7 @@
 import {Slider} from '@/components/ui/slider';
 import {Field, SelectField} from '@/components/kit';
 import {cn} from '@/lib/utils';
-import {backgroundNames, cameraModes, transitionNames, type Pack} from '../../../../src/design/packs';
+import {backgroundNames, cameraModes, usableTransitions, type Pack} from '../../../../src/design/packs';
 import {displayFonts} from '../../../../src/schema';
 
 const Row: React.FC<{label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void}> = ({label, value, min, max, step, onChange}) => (
@@ -57,7 +57,7 @@ export const PackForm: React.FC<{pack: Pack; onChange: (p: Pack) => void}> = ({p
         <SelectField id="p-stagger" label="Stagger from" value={pack.stagger.from} onChange={(v) => set({stagger: {...pack.stagger, from: v as Pack['stagger']['from']}})} options={opts(['start', 'center', 'end'])} />
         <SelectField id="p-font" label="Title font" value={pack.displayFont} onChange={(v) => set({displayFont: v as Pack['displayFont']})} options={displayFonts.map((f) => ({value: f, label: f === 'none' ? 'Brand font' : f}))} />
       </div>
-      <Toggles label="Transitions" all={transitionNames} value={pack.transitions} onChange={(transitions) => set({transitions: transitions as Pack['transitions']})} />
+      <Toggles label="Transitions" all={usableTransitions} value={pack.transitions} onChange={(transitions) => set({transitions: transitions as Pack['transitions']})} />
       <Toggles label="Backgrounds" all={backgroundNames} value={pack.backgrounds} onChange={(backgrounds) => set({backgrounds: backgrounds as Pack['backgrounds']})} />
     </div>
   );
