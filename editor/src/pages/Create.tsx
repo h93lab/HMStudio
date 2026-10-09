@@ -93,7 +93,7 @@ const CreateForm: React.FC = () => {
       <PageTitle title="New video" hint="Describe the idea; the studio writes, voices and renders it." />
       {clientsError && <ErrorBox message={`Could not load clients: ${clientsError}`} />}
       <form onSubmit={submit} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <div className="grid min-w-0 flex-1 content-start items-start gap-4 min-[1700px]:grid-cols-2">
           <Panel title="Brief">
             <Field label="Idea" htmlFor="idea">
               <Textarea id="idea" dir="auto" required rows={4} value={f.idea} onChange={(e) => set('idea', e.target.value)} placeholder="What is the video about, and for whom?" />
