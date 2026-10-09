@@ -61,8 +61,8 @@ export const ReviewPage: React.FC<{params: Record<string, string>}> = ({params})
   };
 
   return (
-    <div className="min-h-full bg-panel">
-      <div className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col bg-background/0 sm:border-x">
+    <div className="min-h-full bg-field">
+      <div className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col bg-background sm:border-x">
         <header className="flex items-center gap-3 border-b px-4 py-3">
           <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Play className="size-4 fill-current" />
@@ -77,12 +77,12 @@ export const ReviewPage: React.FC<{params: Record<string, string>}> = ({params})
 
         {loading && !review && (
           <div className="flex flex-col gap-3 p-4">
-            <Skeleton className="aspect-[9/16] w-full" />
-            <Skeleton className="h-12 w-full" />
+            <Skeleton className="aspect-[9/16] w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-lg" />
           </div>
         )}
         {error && !review && (
-          <div role="alert" className="m-4 rounded-2xl border bg-card p-5 text-center">
+          <div role="alert" className="m-4 rounded-xl border bg-card p-4 text-center">
             <p className="font-title text-lg">This review link is not valid</p>
             <p className="mt-2 text-sm text-muted-foreground">It may have expired or been copied incompletely. Ask the studio for a new link.</p>
           </div>
@@ -101,37 +101,37 @@ export const ReviewPage: React.FC<{params: Record<string, string>}> = ({params})
             )}
 
             {review.approval && (
-              <p role="status" className="flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-primary">
+              <p role="status" className="flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-primary">
                 <Check className="size-4 shrink-0" />
                 {review.approval.status === 'approved' ? 'You approved this video. Thank you!' : 'Changes requested. The studio will update the video.'}
               </p>
             )}
 
-            <form onSubmit={send} className="flex flex-col gap-2">
+            <form onSubmit={send} className="flex flex-col gap-3">
               <label htmlFor="rv-name" className="text-xs text-muted-foreground">
                 Your name
               </label>
-              <Input id="rv-name" dir="auto" value={name} onChange={(e) => saveName(e.target.value)} placeholder="Optional" className="bg-card" />
+              <Input id="rv-name" dir="auto" value={name} onChange={(e) => saveName(e.target.value)} placeholder="Optional" />
               <label htmlFor="rv-comment" className="text-xs text-muted-foreground">
                 Comment at <b className="text-foreground">{mmss(time)}</b>
               </label>
               <div className="flex gap-2">
-                <Input id="rv-comment" dir="auto" value={text} onChange={(e) => setText(e.target.value)} placeholder="What should change here?" className="bg-card" />
+                <Input id="rv-comment" dir="auto" value={text} onChange={(e) => setText(e.target.value)} placeholder="What should change here?" />
                 <Button type="submit" size="icon" aria-label="Send comment" disabled={busy || !text.trim()}>
                   <Send />
                 </Button>
               </div>
             </form>
 
-            <section aria-label="Comments" className="flex flex-col gap-2">
-              <h2 className="font-title text-xs text-muted-foreground">Comments · {review.comments.length}</h2>
+            <section aria-label="Comments" className="flex flex-col gap-3">
+              <h2 className="font-title text-sm">Comments · {review.comments.length}</h2>
               {review.comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
               {review.comments.map((c) => (
-                <div key={c.id} className="flex gap-3 rounded-xl border bg-card p-3 text-sm">
+                <div key={c.id} className="flex gap-3 rounded-lg border bg-card p-3 text-sm">
                   <button
                     type="button"
                     aria-label={`Jump to ${mmss(c.time)}`}
-                    className="h-fit rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary"
+                    className="h-fit rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary"
                     onClick={() => {
                       if (video.current) video.current.currentTime = c.time;
                     }}
@@ -150,7 +150,7 @@ export const ReviewPage: React.FC<{params: Record<string, string>}> = ({params})
               ))}
             </section>
 
-            <div className="sticky bottom-0 mt-auto grid grid-cols-2 gap-2 bg-panel/95 py-3">
+            <div className="sticky bottom-0 mt-auto grid grid-cols-2 gap-2 bg-background/95 py-3">
               <Button variant="outline" disabled={busy} onClick={() => void decide('changes')}>
                 Request changes
               </Button>

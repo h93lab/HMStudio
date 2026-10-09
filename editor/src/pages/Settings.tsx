@@ -2,13 +2,15 @@ import {useEffect, useState} from 'react';
 import {ArrowLeft, Loader2, Plus, X} from 'lucide-react';
 import {toast} from 'sonner';
 import {AppShell, PageTitle} from '@/components/AppShell';
-import {Field, SimpleSelect} from '@/components/studio/bits';
+import {ErrorBox, Field, PageBody, Panel, SelectField} from '@/components/kit';
 import {errMsg, usePoll} from '@/components/studio/usePoll';
 import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from '@/components/ui/alert-dialog';
+import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Slider} from '@/components/ui/slider';
+import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip';
 import {api, type ModelTest, type Settings} from '@/lib/api';
 import {cn} from '@/lib/utils';
 
@@ -60,77 +62,75 @@ export const SettingsPage: React.FC<{params: Record<string, string>}> = () => {
 
   return (
     <AppShell>
-      <div className="grid flex-1 gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_340px]">
-        <main className="flex min-w-0 flex-col gap-3">
-          <PageTitle title="AI models" hint="First model is used; the next ones are automatic fallbacks." />
-          {error && (
-            <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              Could not load settings: {error}
-            </p>
-          )}
-          {loading && !saved && Array.from({length: 4}, (_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
-          {saved?.roles.map((r) => (
-            <RoleCard key={r.role} label={r.label} chain={chains[r.role] ?? []} custom={!same(chains[r.role] ?? [], r.defaults)} options={models ?? []} role={r.role} onChange={(c) => setChains((p) => ({...p, [r.role]: c}))} />
-          ))}
-        </main>
-        <aside className="flex flex-col gap-3">
-          <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4" aria-label="Voice">
-            <h2 className="font-title text-sm text-muted-foreground">Voice</h2>
-            <Field label="Default narrator" htmlFor="voice">
-              <SimpleSelect id="voice" value={voice} onChange={setVoice} emptyLabel="Auto by dialect" options={(saved?.voices ?? []).map((v) => ({value: v, label: v}))} />
-            </Field>
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span id="rate-label">Speaking rate</span>
-                <span className="font-semibold text-primary">{rateStr(rate)}</span>
-              </div>
-              <Slider aria-labelledby="rate-label" min={-20} max={30} step={1} value={[rate]} onValueChange={([v]) => setRate(v)} />
-            </div>
-          </section>
-          <section className="flex flex-col gap-2.5 rounded-2xl border bg-card p-4" aria-label="Usage">
-            <h2 className="font-title text-sm text-muted-foreground">Usage this week</h2>
-            {usageError && <p className="text-xs text-destructive">{usageError}</p>}
-            {usage && usage.length === 0 && <p className="text-xs text-muted-foreground">No calls yet.</p>}
-            {usage?.map((u) => (
-              <div key={u.model} className="flex flex-col gap-1">
-                <div className="flex justify-between gap-2 text-xs">
-                  <span className="truncate">{u.model}</span>
-                  <span className="text-muted-foreground">
-                    {u.calls}
-                    {u.failures > 0 && <span className="text-destructive"> · {u.failures} failed</span>}
-                  </span>
-                </div>
-                <div className="h-1.5 rounded-full bg-track">
-                  <div className="h-full rounded-full bg-primary" style={{width: `${(u.calls / maxCalls) * 100}%`}} />
-                </div>
-              </div>
+      <PageBody>
+        <PageTitle title="AI models" hint="First model is used; the next ones are automatic fallbacks." />
+        {error && <ErrorBox message={`Could not load settings: ${error}`} />}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {loading && !saved && Array.from({length: 4}, (_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+            {saved?.roles.map((r) => (
+              <RoleCard key={r.role} label={r.label} chain={chains[r.role] ?? []} custom={!same(chains[r.role] ?? [], r.defaults)} options={models ?? []} role={r.role} onChange={(c) => setChains((p) => ({...p, [r.role]: c}))} />
             ))}
-          </section>
-          <SecurityCard />
-          <div className="flex gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="flex-1" disabled={!saved}>
-                  Reset to defaults
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reset all models?</AlertDialogTitle>
-                  <AlertDialogDescription>Every role goes back to its default model chain, and the voice settings are cleared.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => void reset()}>Reset</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button className="font-title flex-1" disabled={!saved || saving} onClick={() => void save()}>
-              {saving && <Loader2 className="animate-spin" />} Save
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" disabled={!saved}>
+                    Reset to defaults
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset all models?</AlertDialogTitle>
+                    <AlertDialogDescription>Every role goes back to its default model chain, and the voice settings are cleared.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => void reset()}>Reset</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button className="font-title" disabled={!saved || saving} onClick={() => void save()}>
+                {saving && <Loader2 className="animate-spin" />} Save
+              </Button>
+            </div>
           </div>
-        </aside>
-      </div>
+          <aside className="flex flex-col gap-4 lg:w-96 lg:shrink-0">
+            <Panel title="Voice" aria-label="Voice">
+              <Field label="Default narrator" htmlFor="voice">
+                <SelectField id="voice" value={voice} onChange={setVoice} emptyLabel="Auto by dialect" options={(saved?.voices ?? []).map((v) => ({value: v, label: v}))} />
+              </Field>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span id="rate-label">Speaking rate</span>
+                  <span className="font-semibold text-primary">{rateStr(rate)}</span>
+                </div>
+                <Slider aria-labelledby="rate-label" min={-20} max={30} step={1} value={[rate]} onValueChange={([v]) => setRate(v)} />
+              </div>
+            </Panel>
+            <Panel title="Usage this week" aria-label="Usage">
+              {usageError && <p className="text-xs text-destructive">{usageError}</p>}
+              {usage && usage.length === 0 && <p className="text-xs text-muted-foreground">No calls yet.</p>}
+              <div className="flex flex-col gap-3">
+                {usage?.map((u) => (
+                  <div key={u.model} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between gap-2 text-xs">
+                      <span className="truncate">{u.model}</span>
+                      <span className="text-muted-foreground">
+                        {u.calls}
+                        {u.failures > 0 && <span className="text-destructive"> · {u.failures} failed</span>}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-track">
+                      <div className="h-full rounded-full bg-primary" style={{width: `${(u.calls / maxCalls) * 100}%`}} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+            <SecurityCard />
+          </aside>
+        </div>
+      </PageBody>
     </AppShell>
   );
 };
@@ -158,23 +158,33 @@ const RoleCard: React.FC<{role: string; label: string; chain: string[]; custom: 
   };
 
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4" aria-label={label}>
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="font-title text-base">{label}</h2>
-        <span className={cn('rounded-full border px-2 py-0.5 text-[11px]', custom ? 'border-primary/50 text-primary' : 'text-muted-foreground')}>{custom ? 'custom' : 'default'}</span>
-        <div className="flex-1" />
-        <Button variant="outline" size="sm" disabled={testing || chain.length === 0} onClick={() => void test()}>
-          {testing && <Loader2 className="animate-spin" />} Test
-        </Button>
-      </div>
+    <Panel
+      aria-label={label}
+      title={label}
+      actions={
+        <>
+          <Badge variant="outline" className={custom ? 'border-primary/50 text-primary' : 'text-muted-foreground'}>
+            {custom ? 'Custom' : 'Default'}
+          </Badge>
+          <Button variant="outline" size="sm" disabled={testing || chain.length === 0} onClick={() => void test()}>
+            {testing && <Loader2 className="animate-spin" />} Test
+          </Button>
+        </>
+      }
+    >
       <ul className="flex flex-wrap gap-2">
         {chain.map((m, i) => (
-          <li key={m} className={cn('flex items-center gap-1 rounded-lg border py-1 ps-2.5 pe-1 text-xs', i === 0 ? 'border-primary bg-primary/10 text-primary' : 'bg-panel text-foreground/80')}>
+          <li key={m} className={cn('flex items-center gap-1 rounded-full border py-0.5 ps-3 pe-1 text-xs', i === 0 ? 'border-primary bg-primary/10 text-primary' : 'bg-field text-foreground/80')}>
             <span className="break-all">{m}</span>
             {i > 0 && (
-              <Button variant="ghost" size="icon-xs" aria-label={`Move ${m} earlier`} onClick={() => onChange([...chain.slice(0, i - 1), m, chain[i - 1], ...chain.slice(i + 1)])}>
-                <ArrowLeft />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-xs" aria-label={`Move ${m} earlier`} onClick={() => onChange([...chain.slice(0, i - 1), m, chain[i - 1], ...chain.slice(i + 1)])}>
+                    <ArrowLeft />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Move earlier</TooltipContent>
+              </Tooltip>
             )}
             <Button variant="ghost" size="icon-xs" aria-label={`Remove ${m}`} onClick={() => onChange(chain.filter((x) => x !== m))}>
               <X />
@@ -183,13 +193,13 @@ const RoleCard: React.FC<{role: string; label: string; chain: string[]; custom: 
         ))}
       </ul>
       <form
-        className="flex gap-2"
+        className="flex items-center gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           add();
         }}
       >
-        <Input aria-label={`Add a fallback model for ${label}`} list={listId} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="+ fallback model" className="bg-panel" />
+        <Input aria-label={`Add a fallback model for ${label}`} list={listId} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="+ fallback model" />
         <datalist id={listId}>
           {options.map((m) => (
             <option key={m} value={m} />
@@ -204,7 +214,7 @@ const RoleCard: React.FC<{role: string; label: string; chain: string[]; custom: 
           {result.ok ? `✓ ${result.model} · ${(result.ms / 1000).toFixed(1)}s · ${result.reply}` : `✗ ${result.error}`}
         </p>
       )}
-    </section>
+    </Panel>
   );
 };
 
@@ -236,18 +246,19 @@ const SecurityCard = () => {
 
   const field = (id: string, label: string, value: string, set: (v: string) => void, auto: string) => (
     <Field label={label} htmlFor={id}>
-      <Input id={id} type="password" inputMode="numeric" autoComplete={auto} maxLength={6} value={value} onChange={digits(set)} className="bg-panel" />
+      <Input id={id} type="password" inputMode="numeric" autoComplete={auto} maxLength={6} value={value} onChange={digits(set)} />
     </Field>
   );
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3 rounded-2xl border bg-card p-4" aria-label="Security">
-      <h2 className="font-title text-sm text-muted-foreground">Security</h2>
+    <Panel title="Security" aria-label="Security">
+      <form onSubmit={submit} className="flex flex-col gap-3">
       {field('pin-current', 'Current PIN', current, setCurrent, 'current-password')}
       {field('pin-new', 'New PIN (6 digits)', next, setNext, 'new-password')}
       {field('pin-confirm', 'Confirm new PIN', confirm, setConfirm, 'new-password')}
       <Button type="submit" variant="outline" disabled={busy || !PIN_RE.test(current) || !PIN_RE.test(next) || next !== confirm}>
         {busy && <Loader2 className="animate-spin" />} Change PIN
       </Button>
-    </form>
+      </form>
+    </Panel>
   );
 };

@@ -12,7 +12,7 @@ export const BrandPreview: React.FC<{theme: Theme}> = ({theme}) => {
   return (
     <div
       dir={theme.direction}
-      className="flex flex-col gap-2 border p-6"
+      className="flex flex-col gap-2 border p-4"
       style={{background: colors.background, color: colors.text, fontFamily: `'${theme.font}', sans-serif`, borderRadius: Math.min(theme.radius, 32), boxShadow: `0 0 ${theme.glow * 60}px ${colors.primary}55`}}
     >
       <span className="w-fit px-3 py-1 text-xs font-bold" style={{background: colors.primary, color: colors.background, borderRadius: Math.min(theme.radius, 999)}}>

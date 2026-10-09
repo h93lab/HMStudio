@@ -10,7 +10,7 @@ import {errMsg, formatBytes} from './common';
 const EXT = ['.zip', '.md', '.markdown', '.css', '.json', '.html', '.htm', '.txt'];
 const MAX = 20 * 1024 * 1024;
 
-const Swatch: React.FC<{color: string}> = ({color}) => <span aria-hidden className="inline-block size-5 shrink-0 rounded border" style={{background: color}} />;
+const Swatch: React.FC<{color: string}> = ({color}) => <span aria-hidden className="inline-block size-5 shrink-0 rounded-md border" style={{background: color}} />;
 
 const Compare: React.FC<{label: string; before: React.ReactNode; after: React.ReactNode; changed: boolean}> = ({label, before, after, changed}) => (
   <div className={cn('grid grid-cols-[84px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-1.5 text-xs', changed && 'bg-primary/10')}>
@@ -68,7 +68,7 @@ export const DesignImportDialog: React.FC<{open: boolean; onOpenChange: (o: bool
         ) : t && result ? (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-0.5">
-              <div className="grid grid-cols-[84px_minmax(0,1fr)_minmax(0,1fr)] gap-2 px-2 text-[11px] font-bold uppercase text-muted-foreground">
+              <div className="grid grid-cols-[84px_minmax(0,1fr)_minmax(0,1fr)] gap-2 px-2 text-xs font-semibold uppercase text-muted-foreground">
                 <span />
                 <span>Current</span>
                 <span>Imported</span>

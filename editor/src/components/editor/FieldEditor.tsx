@@ -4,6 +4,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Textarea} from '@/components/ui/textarea';
+import {Field} from '@/components/kit';
 import {cn} from '@/lib/utils';
 import {describe, elementOf, enumValues, kindOf, maxOf, shapeOf} from './schemaForm';
 
@@ -16,46 +17,39 @@ export const FieldEditor: React.FC<Props> = ({name, schema, value, onChange, loc
   const kind = kindOf(schema);
   const max = maxOf(schema);
   const id = `f-${name}`;
-  const header = (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-      <label htmlFor={id} className="capitalize">
-        {name}
-      </label>
-      {max && typeof value === 'string' ? <span className={cn(value.length > max && 'text-destructive')}>{value.length}/{max}</span> : null}
-      <span className="flex-1" />
-      <button type="button" onClick={onToggleLock} aria-label={locked ? `Unlock ${name}` : `Lock ${name}`} title={locked ? 'Locked: AI keeps this field' : 'Unlocked'} className={cn('rounded p-0.5 hover:text-foreground', locked && 'text-primary')}>
-        {locked ? <Lock className="size-3.5" /> : <LockOpen className="size-3.5" />}
-      </button>
-    </div>
+  const aside = (
+    <span className="flex items-center gap-1">
+      {max && typeof value === 'string' ? <span className={cn('tabular-nums', value.length > max && 'text-destructive')}>{value.length}/{max}</span> : null}
+      <Button type="button" variant="ghost" size="icon-xs" onClick={onToggleLock} aria-label={locked ? `Unlock ${name}` : `Lock ${name}`} title={locked ? 'Locked: AI keeps this field' : 'Unlocked'} className={cn(locked && 'text-primary')}>
+        {locked ? <Lock /> : <LockOpen />}
+      </Button>
+    </span>
+  );
+  const label = <span className="capitalize">{name}</span>;
+  const wrap = (children: React.ReactNode, hint?: React.ReactNode) => (
+    <Field label={label} htmlFor={id} aside={aside} hint={hint}>
+      {children}
+    </Field>
   );
 
   if (kind === 'enum')
-    return (
-      <div className="grid gap-1.5">
-        {header}
-        <Select value={value ? String(value) : DEFAULT} onValueChange={(v) => onChange(v === DEFAULT ? undefined : v)}>
-          <SelectTrigger id={id} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={DEFAULT}>Pack default</SelectItem>
-            {enumValues(schema).map((o) => (
-              <SelectItem key={String(o)} value={String(o)}>
-                {String(o)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    return wrap(
+      <Select value={value ? String(value) : DEFAULT} onValueChange={(v) => onChange(v === DEFAULT ? undefined : v)}>
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={DEFAULT}>Pack default</SelectItem>
+          {enumValues(schema).map((o) => (
+            <SelectItem key={String(o)} value={String(o)}>
+              {String(o)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>,
     );
 
-  if (kind === 'number')
-    return (
-      <div className="grid gap-1.5">
-        {header}
-        <Input id={id} type="number" value={Number(value ?? 0)} onChange={(e) => onChange(Number(e.target.value))} />
-      </div>
-    );
+  if (kind === 'number') return wrap(<Input id={id} type="number" value={Number(value ?? 0)} onChange={(e) => onChange(Number(e.target.value))} />);
 
   if (kind === 'array') {
     const el = elementOf(schema);
@@ -63,11 +57,10 @@ export const FieldEditor: React.FC<Props> = ({name, schema, value, onChange, loc
     const objects = kindOf(el) === 'object';
     const enums = kindOf(el) === 'enum';
     const set = (k: number, v: unknown) => onChange(list.map((x, j) => (j === k ? v : x)));
-    return (
-      <div className="grid gap-1.5">
-        {header}
+    return wrap(
+      <div className="flex flex-col gap-2">
         {list.map((item, k) => (
-          <div key={k} className="flex gap-1.5">
+          <div key={k} className="flex items-center gap-2">
             {objects ? (
               Object.entries(shapeOf(el)).map(([sub, subSchema]) => {
                 const num = kindOf(subSchema) === 'number';
@@ -89,25 +82,19 @@ export const FieldEditor: React.FC<Props> = ({name, schema, value, onChange, loc
             ) : (
               <Input dir="auto" aria-label={`${name} ${k + 1}`} value={String(item)} onChange={(e) => set(k, e.target.value)} />
             )}
-            <Button variant="ghost" size="icon" aria-label={`Remove ${name} ${k + 1}`} onClick={() => onChange(list.filter((_, j) => j !== k))}>
+            <Button variant="ghost" size="icon-sm" className="shrink-0" aria-label={`Remove ${name} ${k + 1}`} onClick={() => onChange(list.filter((_, j) => j !== k))}>
               <X />
             </Button>
           </div>
         ))}
-        <Button variant="outline" size="sm" className="justify-self-start" onClick={() => onChange([...list, objects ? {label: '…', value: 1} : enums ? enumValues(el)[0] : '…'])}>
+        <Button variant="outline" size="sm" className="self-start" onClick={() => onChange([...list, objects ? {label: '…', value: 1} : enums ? enumValues(el)[0] : '…'])}>
           <Plus /> Add
         </Button>
-      </div>
+      </div>,
     );
   }
 
   const long = (max ?? 0) > 60 || name === 'voiceover' || name.endsWith('Prompt');
   const hint = describe(schema);
-  return (
-    <div className="grid gap-1.5">
-      {header}
-      {long ? <Textarea id={id} dir="auto" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} /> : <Input id={id} dir="auto" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />}
-      {hint && name !== 'duration' ? <small className="text-xs text-muted-foreground">{hint}</small> : null}
-    </div>
-  );
+  return wrap(long ? <Textarea id={id} dir="auto" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} /> : <Input id={id} dir="auto" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />, hint && name !== 'duration' ? hint : undefined);
 };

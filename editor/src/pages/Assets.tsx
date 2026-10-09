@@ -3,9 +3,11 @@ import {Upload} from 'lucide-react';
 import {toast} from 'sonner';
 import {AppShell, PageTitle} from '@/components/AppShell';
 import {AssetCard} from '@/components/library/AssetCard';
-import {Chips, Empty, errMsg, ErrorBox, Pick, useLoad} from '@/components/library/common';
+import {EmptyState, ErrorBox, FilterTabs, PageBody, SelectField} from '@/components/kit';
+import {errMsg, useLoad} from '@/components/library/common';
 import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle} from '@/components/ui/alert-dialog';
 import {Input} from '@/components/ui/input';
+import {Button} from '@/components/ui/button';
 import {Label} from '@/components/ui/label';
 import {Skeleton} from '@/components/ui/skeleton';
 import {api, type Asset} from '@/lib/api';
@@ -69,6 +71,22 @@ export const AssetsPage: React.FC<{params: Record<string, string>}> = () => {
     setToDelete(null);
   };
 
+  const dropProps = {
+    onDragOver: (e: React.DragEvent) => (e.preventDefault(), setDrag(true)),
+    onDragLeave: () => setDrag(false),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      setDrag(false);
+      void upload([...e.dataTransfer.files]);
+    },
+  };
+  const chooseBtn = (variant: 'default' | 'outline') => (
+    <Button variant={variant} className={variant === 'default' ? 'font-title' : undefined} disabled={!client || progress !== null} onClick={() => input.current?.click()}>
+      Choose files
+    </Button>
+  );
+  const hasAssets = !!assets.data?.length;
+
   const q = search.trim().toLowerCase();
   const shown = (assets.data ?? []).filter((a) => matchesTab(a, tab) && (!q || a.name.toLowerCase().includes(q)));
   const options = [{value: '', label: 'All clients'}, ...(clients.data ?? []).map((c) => ({value: c.id, label: c.theme.client || c.id}))];
@@ -76,10 +94,10 @@ export const AssetsPage: React.FC<{params: Record<string, string>}> = () => {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-4 p-4 sm:p-5">
+      <PageBody>
         <PageTitle title="Asset library">
-          <Pick id="asset-client" label="Client" hideLabel value={client} onChange={setClient} options={options} className="w-48" />
-          <Chips label="Asset type" value={tab} onChange={setTab} items={TABS} />
+          <SelectField id="asset-client" value={client} onChange={setClient} options={options} className="w-full sm:w-48" />
+          <FilterTabs label="Asset type" value={tab} onChange={setTab} items={TABS} />
           <div className="w-full sm:w-52">
             <Label htmlFor="asset-search" className="sr-only">
               Search assets
@@ -88,41 +106,43 @@ export const AssetsPage: React.FC<{params: Record<string, string>}> = () => {
           </div>
         </PageTitle>
 
-        <div
-          onDragOver={(e) => (e.preventDefault(), setDrag(true))}
-          onDragLeave={() => setDrag(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDrag(false);
-            void upload([...e.dataTransfer.files]);
-          }}
-          className={cn('flex flex-wrap items-center justify-center gap-3 rounded-xl border border-dashed p-5 text-sm text-muted-foreground', drag && 'border-primary bg-primary/5 text-foreground')}
-        >
-          <Upload className="size-4" aria-hidden />
-          <span>{progress ?? (client ? 'Drop logos, screenshots, clips or music here · max 200 MB' : 'Pick a client to upload assets')}</span>
-          <button type="button" disabled={!client || progress !== null} onClick={() => input.current?.click()} className="rounded-md border px-3 py-1.5 text-foreground disabled:opacity-50">
-            Choose files
-          </button>
-          <input ref={input} type="file" multiple hidden aria-label="Upload files" accept="image/*,video/*,audio/*" onChange={(e) => (void upload([...(e.target.files ?? [])]), (e.target.value = ''))} />
-        </div>
+        <input ref={input} type="file" multiple hidden aria-label="Upload files" accept="image/*,video/*,audio/*" onChange={(e) => (void upload([...(e.target.files ?? [])]), (e.target.value = ''))} />
+        {hasAssets && (
+          <div {...dropProps} className={cn('flex flex-wrap items-center justify-center gap-3 rounded-xl border border-dashed bg-field px-4 py-3 text-sm text-muted-foreground', drag && 'border-primary bg-primary/5 text-foreground')}>
+            <Upload className="size-4" aria-hidden />
+            <span>{progress ?? (client ? 'Drop files here · up to 200 MB' : 'Pick a client to upload assets')}</span>
+            {chooseBtn('outline')}
+          </div>
+        )}
 
         {assets.error && <ErrorBox message={assets.error} onRetry={assets.reload} />}
         {assets.loading && !assets.data ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
             {Array.from({length: 8}, (_, i) => (
-              <Skeleton key={i} className="h-48 rounded-xl" />
+              <Skeleton key={i} className="h-52 rounded-xl" />
             ))}
           </div>
+        ) : !hasAssets ? (
+          !assets.error && (
+            <EmptyState
+              {...dropProps}
+              className={cn(drag && 'border-primary bg-primary/5')}
+              icon={<Upload />}
+              title="No assets yet"
+              text={progress ?? (client ? 'Drop logos, screenshots, clips or music here · up to 200 MB' : 'Pick a client to upload assets')}
+              action={chooseBtn('default')}
+            />
+          )
         ) : shown.length === 0 ? (
-          !assets.error && <Empty>{assets.data?.length ? 'No assets match this filter.' : 'No assets yet. Upload the first one above.'}</Empty>
+          <EmptyState title="No assets match this filter" />
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
             {shown.map((a) => (
               <AssetCard key={`${a.client}/${a.name}`} asset={a} showClient={!client} onDelete={setToDelete} />
             ))}
           </div>
         )}
-      </div>
+      </PageBody>
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>

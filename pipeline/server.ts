@@ -125,7 +125,7 @@ export const deriveRun = (log: string, meta: {status: RunStatus; kind: RunMeta['
   const kind = meta?.kind ?? 'make';
   const progress = status === 'done' ? 1 : status === 'waiting' ? 0 : pct !== undefined ? (kind === 'render' ? pct : 0.5 + pct / 2) : kind === 'render' ? 0.02 : Math.min(0.45, 0.04 + markers * 0.08);
   const failLine = lines.filter((l) => l.startsWith('✗')).at(-1)?.replace(/^✗\s*/, '');
-  const step = interrupted ? 'interrupted' : status === 'waiting' ? 'waiting for a free slot' : status === 'failed' ? (failLine ?? lines.at(-1) ?? 'failed') : status === 'cancelled' ? 'cancelled' : (lines.at(-1) ?? 'starting');
+  const step = interrupted ? 'interrupted' : status === 'waiting' ? 'waiting for a free slot' : status === 'failed' ? (failLine ?? lines.at(-1) ?? 'failed') : status === 'cancelled' ? 'cancelled' : status === 'done' ? 'finished' : (lines.at(-1) ?? 'starting');
   return {status, progress: Math.round(progress * 100) / 100, step: step.slice(0, 140)};
 };
 
@@ -614,7 +614,7 @@ export const parseMake = (b: Record<string, any>) => {
   if (screens.length) opts.push('--screens', screens.join(','));
   if (clips.length) opts.push('--clips', clips.join(','));
   if (b.logo) opts.push('--logo', user(() => assetPathFromUrl(client, b.logo)));
-  return {options: opts, text: [idea], template, label: `${idea.replace(/\s+/g, ' ').slice(0, 32)} · make`};
+  return {options: opts, text: [idea], template, label: idea.replace(/\s+/g, ' ').slice(0, 48)}; // the kind shows as its own badge
 };
 
 const jobLabel = (job: Job, what: string) => `${job.idea.replace(/\s+/g, ' ').slice(0, 32)} · ${what}`;

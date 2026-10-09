@@ -9,6 +9,7 @@ import {Label} from '@/components/ui/label';
 import {Textarea} from '@/components/ui/textarea';
 import {api, type Format, type JobSummary} from '@/lib/api';
 import {Link, navigate} from '@/lib/router';
+import {ThumbBadge} from '@/components/kit';
 import {FORMATS} from './bits';
 import {errMsg} from './usePoll';
 
@@ -50,33 +51,59 @@ export const VideoCard: React.FC<{job: JobSummary; onChanged: () => void}> = ({j
   };
 
   return (
-    <article className="group overflow-hidden rounded-2xl border bg-card">
-      <Link href={`/edit/${job.id}`} className="relative block aspect-[9/16] max-h-80 w-full overflow-hidden bg-panel" aria-label={`Open editor: ${job.idea.slice(0, 60)}`}>
-        {v?.cover ? <img src={v.cover} alt="" loading="lazy" className="size-full object-cover transition-transform group-hover:scale-[1.03]" /> : <Film className="absolute inset-0 m-auto size-8 text-muted-foreground" />}
-        {job.busy && (
-          <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs text-primary">
-            <Loader2 className="size-3 animate-spin" /> Working
-          </span>
+    <article className="group flex h-full flex-col overflow-hidden rounded-xl border bg-card">
+      <div className="relative aspect-[9/16] w-full overflow-hidden bg-field">
+        {v?.cover ? (
+          <Link href={`/edit/${job.id}`} className="block size-full" aria-label={`Open editor: ${job.idea.slice(0, 60)}`}>
+            <img src={v.cover} alt="" loading="lazy" className="size-full object-cover transition-transform group-hover:scale-[1.03]" />
+          </Link>
+        ) : (
+          <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground">
+            {job.busy ? <Loader2 className="size-5 animate-spin text-primary" /> : <Film className="size-5" />}
+            <p className="text-sm">{job.busy ? 'Working…' : 'No video yet'}</p>
+            {!job.busy && (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/queue">See queue</Link>
+              </Button>
+            )}
+          </div>
         )}
-        {v?.qaScore != null && <Badge className="absolute end-2 top-2 bg-black/70 text-primary" title="QA score">QA {v.qaScore.toFixed(1)}</Badge>}
-      </Link>
-      <div className="flex flex-col gap-2 p-3">
+        {job.busy && v?.cover && (
+          <ThumbBadge className="absolute start-2 top-2 inline-flex items-center gap-1 text-primary">
+            <Loader2 className="size-3 animate-spin" /> Working
+          </ThumbBadge>
+        )}
+        {v?.qaScore != null && <ThumbBadge className="absolute end-2 top-2">QA {v.qaScore.toFixed(1)}</ThumbBadge>}
+        {job.versions.length > 0 && (
+          <ThumbBadge className="absolute start-2 bottom-2">
+            {job.versions.length} {job.versions.length === 1 ? 'version' : 'versions'}
+          </ThumbBadge>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-3">
         <p dir="auto" className="line-clamp-2 min-h-10 text-sm">
           {job.idea}
         </p>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span dir="auto" className="font-semibold text-foreground">
-            {job.clientName}
+        <div className="mt-auto flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate">
+            <span dir="auto" className="font-semibold text-foreground">
+              {job.clientName}
+            </span>
+            {' · '}
+            {job.format}
+            {' · '}
+            {job.versions.length} {job.versions.length === 1 ? 'version' : 'versions'}
           </span>
-          <span>{job.format}</span>
-          <span>{job.versions.length} {job.versions.length === 1 ? 'version' : 'versions'}</span>
-          {job.approval && <Badge variant="outline" className={job.approval.status === 'approved' ? 'text-primary' : 'text-chart-5'}>{job.approval.status === 'approved' ? 'Approved' : 'Changes asked'}</Badge>}
+          {job.approval && (
+            <Badge variant="outline" className={job.approval.status === 'approved' ? 'text-primary' : 'text-chart-5'}>
+              {job.approval.status === 'approved' ? 'Approved' : 'Changes asked'}
+            </Badge>
+          )}
           {job.openComments > 0 && (
             <span className="inline-flex items-center gap-1 text-chart-5">
               <MessageSquare className="size-3" /> {job.openComments}
             </span>
           )}
-          <div className="flex-1" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon-sm" aria-label="Video actions">

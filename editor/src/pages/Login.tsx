@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import {Loader2, Play} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
+import {Panel} from '@/components/kit';
 import {Input} from '@/components/ui/input';
 import {api, ApiError, type AuthState} from '@/lib/api';
 import {navigate, useLocation} from '@/lib/router';
@@ -51,7 +52,7 @@ const PinBoxes: React.FC<{label: string; disabled: boolean; invalid: boolean; re
           aria-label={`Digit ${i + 1} of ${LEN}`}
           aria-invalid={invalid}
           type="password"
-          className="h-12 w-11 px-0 text-center text-xl font-bold sm:w-12"
+          className="h-12 w-11 px-0 text-center text-xl font-semibold sm:w-12"
           onFocus={(e) => e.target.select()}
           onChange={(e) => fill(i, e.target.value)}
           onPaste={(e) => {
@@ -160,16 +161,16 @@ export const LoginPage: React.FC<{params: Record<string, string>}> = () => {
   }
 
   return (
-    <div className="grid min-h-full place-items-center p-4">
-      <main className="flex w-full max-w-sm flex-col gap-5 rounded-[22px] border bg-[#141415] p-6">
+    <main className="grid min-h-full place-items-center p-4">
+      <Panel as="div" className="w-full max-w-sm gap-5">
         <div className="flex items-center justify-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-[10px] bg-primary text-primary-foreground">
+          <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Play className="size-4 fill-current" />
           </span>
           <span className="font-title text-xl">Motion Studio</span>
         </div>
         {body}
-      </main>
-    </div>
+      </Panel>
+    </main>
   );
 };

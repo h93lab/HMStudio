@@ -5,7 +5,8 @@ import {BrandSwatches} from '@/components/library/BrandSwatches';
 import {ClientEditor} from '@/components/library/ClientEditor';
 import {NewClientDialog} from '@/components/library/ClientDialogs';
 import {profileMeta} from '@/components/library/brand';
-import {Empty, ErrorBox, useLoad} from '@/components/library/common';
+import {EmptyState, ErrorBox, PageBody} from '@/components/kit';
+import {useLoad} from '@/components/library/common';
 import {Button} from '@/components/ui/button';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Switch} from '@/components/ui/switch';
@@ -32,7 +33,7 @@ export const ClientsPage: React.FC<{params: Record<string, string>}> = ({params}
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-4 p-4 sm:p-5">
+      <PageBody>
         <PageTitle title="Clients" hint="Brand kits for your videos">
           <Button className="font-title" onClick={() => setCreating(true)}>
             <Plus /> New client
@@ -41,8 +42,8 @@ export const ClientsPage: React.FC<{params: Record<string, string>}> = ({params}
         {error && <ErrorBox message={error} onRetry={reload} />}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <aside aria-label="Clients" className="flex shrink-0 flex-col gap-2 lg:sticky lg:top-4 lg:w-72">
-            {loading && !data && [0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
-            {!loading && !error && visible.length === 0 && <Empty>No clients yet. Create the first one.</Empty>}
+            {loading && !data && [0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+            {!loading && !error && visible.length === 0 && <EmptyState title="No clients yet" text="Create the first one." className="px-4 py-8" />}
             {visible.map((c) => {
               const on = c.id === selected?.id;
               return (
@@ -54,13 +55,13 @@ export const ClientsPage: React.FC<{params: Record<string, string>}> = ({params}
                     e.preventDefault();
                     go(c.id);
                   }}
-                  className={cn('flex items-center gap-3 rounded-xl border bg-card p-2.5', on && 'border-primary', c.archived && 'opacity-60')}
+                  className={cn('flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-card/60', on && 'border-primary bg-card', c.archived && 'opacity-60')}
                 >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-[10px] font-extrabold" style={{background: c.theme.colors.primary, color: c.theme.colors.background}} dir="auto">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-md font-bold" style={{background: c.theme.colors.primary, color: c.theme.colors.background}} dir="auto">
                     {(c.theme.client || c.id)[0]?.toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold" dir="auto">
+                    <span className="block truncate text-sm font-medium" dir="auto">
                       {c.theme.client || c.id}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">{c.archived ? 'Archived · ' : ''}{profileMeta(c)}</span>
@@ -69,7 +70,7 @@ export const ClientsPage: React.FC<{params: Record<string, string>}> = ({params}
                 </Link>
               );
             })}
-            <div className="flex items-center gap-2 px-1 pt-1">
+            <div className="flex items-center gap-2 px-1 pt-2">
               <Switch id="show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
               <Label htmlFor="show-archived" className="text-xs text-muted-foreground">
                 Show archived
@@ -77,14 +78,14 @@ export const ClientsPage: React.FC<{params: Record<string, string>}> = ({params}
             </div>
           </aside>
           {loading && !data ? (
-            <Skeleton className="h-96 flex-1 rounded-2xl" />
+            <Skeleton className="h-96 flex-1 rounded-xl" />
           ) : selected ? (
             <ClientEditor key={selected.id} profile={selected} onDirty={onDirty} onChanged={(nextId) => (nextId ? (reload(), navigate(`/clients/${nextId}`)) : reload())} />
           ) : (
-            !error && <Empty>{params.id ? `No client "${params.id}".` : 'Select a client.'}</Empty>
+            !error && <EmptyState className="flex-1" title={params.id ? `No client "${params.id}"` : 'Select a client'} />
           )}
         </div>
-      </div>
+      </PageBody>
       <NewClientDialog
         open={creating}
         onOpenChange={setCreating}

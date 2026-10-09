@@ -29,7 +29,8 @@
   --chart-3: #ff5d5d;
   --chart-4: #b081ff;
   --chart-5: #ffb547;
-  --panel: #19191a;
+  --panel: var(--card); /* one surface color for every card/panel */
+  --field: #141415; /* recessed areas: logs, drop zones, wells */
   --track: #222224;
 }
 
@@ -60,6 +61,7 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
   --color-panel: var(--panel);
+  --color-field: var(--field);
   --color-track: var(--track);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

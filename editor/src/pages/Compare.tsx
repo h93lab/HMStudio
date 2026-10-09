@@ -2,7 +2,8 @@ import {useRef, useState} from 'react';
 import {Pause, Play, Trophy} from 'lucide-react';
 import {toast} from 'sonner';
 import {AppShell, PageTitle} from '@/components/AppShell';
-import {Empty, errMsg, ErrorBox, useLoad} from '@/components/library/common';
+import {EmptyState, ErrorBox, PageBody, Panel} from '@/components/kit';
+import {errMsg, useLoad} from '@/components/library/common';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Skeleton} from '@/components/ui/skeleton';
@@ -71,7 +72,7 @@ export const ComparePage: React.FC<{params: Record<string, string>}> = ({params}
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-4 p-4 sm:p-5">
+      <PageBody>
         <Link href="/" className="w-fit text-sm text-muted-foreground hover:text-foreground">
           ← Projects
         </Link>
@@ -88,12 +89,12 @@ export const ComparePage: React.FC<{params: Record<string, string>}> = ({params}
         {error && <ErrorBox message={error} onRetry={reload} />}
         {loading && !job && (
           <div className="grid gap-4 md:grid-cols-2">
-            <Skeleton className="h-96 rounded-2xl" />
-            <Skeleton className="h-96 rounded-2xl" />
+            <Skeleton className="h-96 rounded-xl" />
+            <Skeleton className="h-96 rounded-xl" />
           </div>
         )}
-        {job && candidates.length === 0 && <Empty>This project has no versions to compare yet.</Empty>}
-        {job && candidates.length === 1 && <Empty>Only one version exists. Generate variants to compare hooks.</Empty>}
+        {job && candidates.length === 0 && <EmptyState title="No versions to compare yet" />}
+        {job && candidates.length === 1 && <EmptyState title="Only one version exists" text="Generate variants to compare hooks." />}
         {job && candidates.length > 0 && (
           <>
             <div className={cn('grid gap-4 md:grid-cols-2', candidates.length > 2 && 'xl:grid-cols-3')}>
@@ -102,75 +103,85 @@ export const ComparePage: React.FC<{params: Record<string, string>}> = ({params}
                 const isRec = v === rec && candidates.length > 1;
                 const letter = String.fromCharCode(65 + i);
                 return (
-                  <section key={v.v} className={cn('flex min-w-0 flex-col gap-3 rounded-2xl border bg-card p-4', isRec && 'border-primary')}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={cn('grid size-7 place-items-center rounded-lg font-extrabold', isRec ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>{letter}</span>
-                      <span className="min-w-0 flex-1 truncate font-bold" dir="auto">
-                        Version {v.v}
+                  <Panel
+                    key={v.v}
+                    className={cn(isRec && 'border-primary')}
+                    title={
+                      <span className="flex items-center gap-2">
+                        <span className={cn('grid size-7 place-items-center rounded-md text-sm font-bold', isRec ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>{letter}</span>
+                        <span dir="auto">Version {v.v}</span>
                       </span>
-                      {job.winner === v.v && (
-                        <Badge>
-                          <Trophy /> Current winner
-                        </Badge>
+                    }
+                    meta={`${v.seconds.toFixed(1)}s`}
+                    actions={
+                      <>
+                        {job.winner === v.v && (
+                          <Badge>
+                            <Trophy /> Current winner
+                          </Badge>
+                        )}
+                        {isRec && <Badge variant="outline">Recommended</Badge>}
+                      </>
+                    }
+                  >
+                    <div className="mx-auto flex aspect-[9/16] h-[60vh] max-w-full items-center justify-center overflow-hidden rounded-xl bg-field">
+                      {src ? (
+                        <video
+                          ref={(el) => void (refs.current[i] = el)}
+                          src={src}
+                          poster={v.cover}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          onPlay={() => setPlaying(true)}
+                          onTimeUpdate={(e) => i === 0 && setTime(e.currentTarget.currentTime)}
+                          onEnded={() => setPlaying(false)}
+                          onPause={() => setPlaying(videos().some((x) => !x.paused))}
+                          onLoadedMetadata={(e) => {
+                            const len = e.currentTarget.duration;
+                            setDurations((d) => ({...d, [i]: len}));
+                          }}
+                          className="size-full bg-black object-contain"
+                        />
+                      ) : v.cover ? (
+                        <img src={v.cover} alt={`Cover of ${letter}`} className="size-full object-contain" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Not rendered yet</span>
                       )}
-                      {isRec && <Badge variant="outline">Recommended</Badge>}
-                                          </div>
-                    {src ? (
-                      <video
-                        ref={(el) => void (refs.current[i] = el)}
-                        src={src}
-                        poster={v.cover}
-                        controls
-                        playsInline
-                        preload="metadata"
-                        onPlay={() => setPlaying(true)}
-                        onTimeUpdate={(e) => i === 0 && setTime(e.currentTarget.currentTime)}
-                        onEnded={() => setPlaying(false)}
-                        onPause={() => setPlaying(videos().some((x) => !x.paused))}
-                        onLoadedMetadata={(e) => {
-                          const len = e.currentTarget.duration;
-                          setDurations((d) => ({...d, [i]: len}));
-                        }}
-                        className="max-h-[60vh] w-full rounded-xl bg-black object-contain"
-                      />
-                    ) : v.cover ? (
-                      <img src={v.cover} alt={`Cover of ${letter}`} className="max-h-[60vh] w-full rounded-xl object-contain" />
-                    ) : (
-                      <Empty>Not rendered yet</Empty>
-                    )}
+                    </div>
                     {v.variant && (
-                      <div>
-                        <div className="text-xs text-muted-foreground">Hook</div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs text-muted-foreground">Hook</span>
                         <p className="text-sm" dir="auto">
                           {v.variant}
                         </p>
                       </div>
                     )}
-                    <dl className="flex flex-col gap-1.5 text-sm">
+                    <dl className="flex flex-col text-sm">
                       {stats(v, candidates).map((s) => (
-                        <div key={s.label} className="flex justify-between gap-3">
+                        <div key={s.label} className="flex justify-between gap-3 border-b py-2 last:border-b-0">
                           <dt className="text-muted-foreground">{s.label}</dt>
-                          <dd className={cn(s.win && 'font-bold text-primary')}>{s.value}</dd>
+                          <dd className={cn(s.win && 'font-medium text-primary')}>{s.value}</dd>
                         </div>
                       ))}
                     </dl>
-                    <Button className={cn(isRec && 'font-title')} variant={isRec ? 'default' : 'secondary'} disabled={keeping !== null} onClick={() => keep(v)}>
+                    <Button className={cn('w-full', isRec && 'font-title')} variant={isRec ? 'default' : 'outline'} disabled={keeping !== null} onClick={() => keep(v)}>
                       {keeping === v.v ? 'Saving…' : `Keep ${letter} · open in editor`}
                     </Button>
-                  </section>
+                  </Panel>
                 );
               })}
             </div>
             {candidates.some((v) => videoOf(job, v)) && shortest > 0 && (
-              <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+              <Panel className="flex-row items-center gap-3">
                 <span className="w-10 text-xs tabular-nums text-muted-foreground">{mmss(time)}</span>
                 <Slider aria-label="Seek both videos" min={0} max={Math.max(shortest, 0.1)} step={0.1} value={[Math.min(time, shortest)]} onValueChange={([t]) => seek(t)} />
                 <span className="w-10 text-end text-xs tabular-nums text-muted-foreground">{mmss(shortest)}</span>
-              </div>
+              </Panel>
             )}
           </>
         )}
-      </div>
+      </PageBody>
     </AppShell>
   );
 };

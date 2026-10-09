@@ -7,7 +7,8 @@ import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Textarea} from '@/components/ui/textarea';
 import {api, type Template} from '@/lib/api';
-import {Chips, errMsg, Pick, useLoad} from './common';
+import {FilterTabs, SelectField} from '@/components/kit';
+import {errMsg, useLoad} from './common';
 
 export const CATEGORIES: Template['category'][] = ['launch', 'explainer', 'offer', 'event', 'other'];
 type Row = {type: string; seconds: number};
@@ -60,23 +61,23 @@ export const NewTemplateDialog: React.FC<{open: boolean; onOpenChange: (o: boole
             <Label htmlFor="tpl-name">Name</Label>
             <Input id="tpl-name" dir="auto" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <Pick id="tpl-category" label="Category" value={category} onChange={(v) => setCategory(v as Template['category'])} options={CATEGORIES.map((c) => ({value: c, label: c[0].toUpperCase() + c.slice(1)}))} />
+          <SelectField id="tpl-category" label="Category" value={category} onChange={(v) => setCategory(v as Template['category'])} options={CATEGORIES.map((c) => ({value: c, label: c[0].toUpperCase() + c.slice(1)}))} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="tpl-desc">Description</Label>
             <Textarea id="tpl-desc" dir="auto" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
-          <Chips label="Structure source" value={mode} onChange={(v) => setMode(v as 'job' | 'manual')} items={[{value: 'job', label: 'Copy from a project'}, {value: 'manual', label: 'Build manually'}]} />
+          <FilterTabs label="Structure source" value={mode} onChange={(v) => setMode(v as 'job' | 'manual')} items={[{value: 'job', label: 'Copy from a project'}, {value: 'manual', label: 'Build manually'}]} />
           {mode === 'job' ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Pick id="tpl-job" label="Project" value={jobId} onChange={(v) => (setJobId(v), setVersion(''))} options={[{value: '', label: jobs.loading ? 'Loading…' : 'Choose…'}, ...(jobs.data ?? []).map((j) => ({value: j.id, label: `${j.clientName}: ${j.idea.slice(0, 40)}`}))]} />
-              <Pick id="tpl-version" label="Version" value={version} onChange={setVersion} options={[{value: '', label: 'Choose…'}, ...(job?.versions ?? []).map((v) => ({value: String(v.v), label: `v${v.v} · ${v.scenes} scenes`}))]} />
+              <SelectField id="tpl-job" label="Project" value={jobId} onChange={(v) => (setJobId(v), setVersion(''))} options={[{value: '', label: jobs.loading ? 'Loading…' : 'Choose…'}, ...(jobs.data ?? []).map((j) => ({value: j.id, label: `${j.clientName}: ${j.idea.slice(0, 40)}`}))]} />
+              <SelectField id="tpl-version" label="Version" value={version} onChange={setVersion} options={[{value: '', label: 'Choose…'}, ...(job?.versions ?? []).map((v) => ({value: String(v.v), label: `v${v.v} · ${v.scenes} scenes`}))]} />
               {jobs.error && <span className="text-xs text-destructive sm:col-span-2">{jobs.error}</span>}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {rows.map((r, i) => (
                 <div key={i} className="flex items-end gap-2">
-                  <Pick id={`row-type-${i}`} label={`Scene ${i + 1} type`} value={r.type} onChange={(type) => setRow(i, {type})} options={(sceneTypes.length ? sceneTypes : [r.type]).map((t) => ({value: t, label: t}))} className="flex-1" />
+                  <SelectField id={`row-type-${i}`} label={`Scene ${i + 1} type`} value={r.type} onChange={(type) => setRow(i, {type})} options={(sceneTypes.length ? sceneTypes : [r.type]).map((t) => ({value: t, label: t}))} className="flex-1" />
                   <div className="flex w-24 flex-col gap-1.5">
                     <Label htmlFor={`row-sec-${i}`} className="text-xs text-muted-foreground">
                       Seconds

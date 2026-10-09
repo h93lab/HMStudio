@@ -61,8 +61,8 @@ export const ExportDialog: React.FC<Props> = ({open, onOpenChange, job, v, dirty
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         {finished ? (
-          <div className="grid justify-items-center gap-4 py-6 text-center">
-            <span className="grid size-14 -rotate-6 place-items-center rounded-2xl bg-primary text-primary-foreground">
+          <div className="flex flex-col items-center gap-4 py-6 text-center">
+            <span className="grid size-14 -rotate-6 place-items-center rounded-xl bg-primary text-primary-foreground">
               <Check className="size-7" strokeWidth={3} />
             </span>
             <DialogTitle className="font-title text-4xl">Export success</DialogTitle>
@@ -90,18 +90,18 @@ export const ExportDialog: React.FC<Props> = ({open, onOpenChange, job, v, dirty
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
-              {version?.cover ? <img src={version.cover} alt="Video cover" className="hidden aspect-[9/16] w-full rounded-xl object-cover sm:block" /> : <div className="hidden aspect-[9/16] rounded-xl bg-card sm:block" />}
-              <div className="grid content-start gap-3">
+              {version?.cover ? <img src={version.cover} alt="Video cover" className="hidden aspect-[9/16] w-full rounded-lg object-cover sm:block" /> : <div className="hidden aspect-[9/16] rounded-lg bg-field sm:block" />}
+              <div className="flex flex-col gap-3">
                 <span className="font-title text-sm">Formats</span>
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(USE) as Format[]).map((f) => {
                     const on = formats.includes(f);
                     return (
-                      <label key={f} className={cn('flex cursor-pointer items-start gap-2 rounded-lg border p-2.5', on && 'border-primary bg-primary/10')}>
+                      <label key={f} className={cn('flex cursor-pointer items-start gap-2 rounded-lg border p-3', on && 'border-primary bg-primary/10')}>
                         <Checkbox checked={on} disabled={runs !== null} onCheckedChange={(c) => setFormats((x) => (c ? [...x, f] : x.filter((y) => y !== f)))} className="mt-0.5" />
-                        <span className="grid">
+                        <span className="flex flex-col">
                           <span className="font-semibold">{f}</span>
-                          <span className="text-[11px] text-muted-foreground">{USE[f]}</span>
+                          <span className="text-xs text-muted-foreground">{USE[f]}</span>
                         </span>
                       </label>
                     );
@@ -109,19 +109,19 @@ export const ExportDialog: React.FC<Props> = ({open, onOpenChange, job, v, dirty
                 </div>
                 {dirty ? <p className="text-xs text-destructive">You have unsaved edits. Export uses the last saved version (v{v}); save first to include them.</p> : null}
                 {runs?.map((r) => (
-                  <div key={r.id} className="grid gap-1">
+                  <div key={r.id} className="flex flex-col gap-1.5">
                     <div className="flex justify-between text-xs">
                       <span className="truncate">{r.label}</span>
                       <span className="text-muted-foreground uppercase">{r.status}</span>
                     </div>
                     <Progress value={r.progress * 100} />
-                    <span className="truncate text-[11px] text-muted-foreground">{r.step}</span>
+                    <span className="truncate text-xs text-muted-foreground">{r.step}</span>
                   </div>
                 ))}
                 {failed ? <p className="text-xs text-destructive">Export failed: {failed.step}. Open the Queue for the full log.</p> : null}
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-2 sm:justify-end">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 {runs ? 'Close' : 'Cancel'}
               </Button>

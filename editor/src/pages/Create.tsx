@@ -1,9 +1,10 @@
 import {useEffect, useState} from 'react';
 import {Loader2, Sparkles} from 'lucide-react';
 import {toast} from 'sonner';
-import {AppShell} from '@/components/AppShell';
+import {AppShell, PageTitle} from '@/components/AppShell';
 import {AssetPicker} from '@/components/studio/AssetPicker';
-import {Field, FORMATS, LogView, SimpleSelect, StatusDot, statusText} from '@/components/studio/bits';
+import {ErrorBox, Field, LogView, PageBody, Panel, SelectField, StatusDot, StatusLabel} from '@/components/kit';
+import {FORMATS} from '@/components/studio/bits';
 import {errMsg, usePoll} from '@/components/studio/usePoll';
 import {Button} from '@/components/ui/button';
 import {Progress} from '@/components/ui/progress';
@@ -75,116 +76,142 @@ const CreateForm: React.FC = () => {
 
   const usable = (clients ?? []).filter((c) => !c.archived);
   const byKind = (...k: string[]) => (assets ?? []).filter((a) => k.includes(a.kind));
+  const clientName = usable.find((c) => c.id === f.client)?.theme.client || f.client;
+  const styleName = (options?.styles ?? []).find((x) => x.id === f.style)?.label;
+  const tier = TIERS.find((t) => t.value === f.tier);
+  const summary: [string, string][] = [
+    ['Client', clientName || 'Not chosen'],
+    ['Format', f.format],
+    ['Length', `${f.seconds}s`],
+    ['Quality', tier?.label ?? f.tier],
+    ['Style', styleName ?? 'Director picks'],
+    ...(f.variants > 1 ? ([['A/B variants', String(f.variants)]] as [string, string][]) : []),
+  ];
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-4 sm:p-6">
-      <form onSubmit={submit} className="flex flex-col gap-5">
-        <h1 className="font-title text-2xl">New video</h1>
-        {clientsError && (
-          <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-            Could not load clients: {clientsError}
-          </p>
-        )}
-        <Field label="Idea" htmlFor="idea">
-          <Textarea id="idea" dir="auto" required rows={4} value={f.idea} onChange={(e) => set('idea', e.target.value)} placeholder="What is the video about, and for whom?" className="bg-[#141415]" />
-        </Field>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Client" htmlFor="client">
-            {clients ? <SimpleSelect id="client" value={f.client} onChange={pickClient} emptyLabel="Choose a client" options={usable.map((c) => ({value: c.id, label: c.theme.client || c.id}))} /> : <Skeleton className="h-9" />}
-          </Field>
-          <Field label="Format" htmlFor="format">
-            <SimpleSelect id="format" value={f.format} onChange={(v) => set('format', v as Format)} options={(options?.formats ?? FORMATS).map((x) => ({value: x, label: x}))} />
-          </Field>
-          <Field label="Dialect" htmlFor="dialect">
-            <SimpleSelect id="dialect" value={f.dialect} onChange={(v) => set('dialect', v as Dialect)} options={DIALECTS} />
-          </Field>
-          <Field label="Style" htmlFor="style">
-            <SimpleSelect id="style" value={f.style} onChange={(v) => set('style', v)} emptyLabel="Director picks" options={(options?.styles ?? []).map((s) => ({value: s.id, label: s.label}))} />
-          </Field>
-          <Field label="Music" htmlFor="music">
-            <SimpleSelect id="music" value={f.music} onChange={(v) => set('music', v)} emptyLabel="Director picks" options={(options?.music ?? []).map((m) => ({value: m, label: m}))} />
-          </Field>
-          <Field label="Template" htmlFor="template">
-            <SimpleSelect id="template" value={f.template} onChange={(v) => set('template', v)} emptyLabel="None (free structure)" options={(templates ?? []).map((t) => ({value: t.id, label: t.name}))} />
-          </Field>
-          <Field label="Narrator" htmlFor="gender">
-            <SimpleSelect id="gender" value={f.gender} onChange={(v) => set('gender', v as 'male' | 'female')} options={[{value: 'male', label: 'Male'}, {value: 'female', label: 'Female'}]} />
-          </Field>
-          <Field label="Specific voice" htmlFor="voice" className="lg:col-span-2">
-            <SimpleSelect id="voice" value={f.voice} onChange={(v) => set('voice', v)} emptyLabel="Auto (by narrator and dialect)" options={(options?.voices ?? []).map((v) => ({value: v, label: v}))} />
-          </Field>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span id="secs-label">Length</span>
-            <span className="font-semibold text-primary">{f.seconds}s</span>
-          </div>
-          <Slider aria-labelledby="secs-label" min={10} max={90} step={5} value={[f.seconds]} onValueChange={([v]) => set('seconds', v)} />
-        </div>
-
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 text-xs text-muted-foreground">Quality</legend>
-          <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Quality">
-            {TIERS.map((t) => (
-              <button key={t.value} type="button" role="radio" aria-checked={f.tier === t.value} onClick={() => set('tier', t.value)} className={cn('rounded-xl border bg-card p-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50', f.tier === t.value && 'border-primary bg-primary/10')}>
-                <span className={cn('block text-sm font-semibold', f.tier === t.value && 'text-primary')}>{t.label}</span>
-                <span className="text-xs text-muted-foreground">{t.hint}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-          <Field label="Client website (optional): facts, logo, colors" htmlFor="url">
-            <Input id="url" type="url" inputMode="url" value={f.url} onChange={(e) => set('url', e.target.value)} placeholder="https://" className="bg-[#141415]" />
-          </Field>
-          <div className="flex items-end gap-2 pb-2">
-            <Switch id="brand" checked={f.brandTheme} disabled={!f.url.trim()} onCheckedChange={(v) => set('brandTheme', v)} />
-            <label htmlFor="brand" className="text-sm">
-              Use brand colors
-            </label>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="flex flex-col gap-2 sm:col-span-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span id="var-label">A/B variants</span>
-              <span className="font-semibold text-primary">{f.variants}</span>
+    <PageBody>
+      <PageTitle title="New video" hint="Describe the idea; the studio writes, voices and renders it." />
+      {clientsError && <ErrorBox message={`Could not load clients: ${clientsError}`} />}
+      <form onSubmit={submit} className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <Panel title="Brief">
+            <Field label="Idea" htmlFor="idea">
+              <Textarea id="idea" dir="auto" required rows={4} value={f.idea} onChange={(e) => set('idea', e.target.value)} placeholder="What is the video about, and for whom?" />
+            </Field>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Client" htmlFor="client">
+                {clients ? <SelectField id="client" value={f.client} onChange={pickClient} emptyLabel="Choose a client" options={usable.map((c) => ({value: c.id, label: c.theme.client || c.id}))} /> : <Skeleton className="h-9" />}
+              </Field>
+              <Field label="Format" htmlFor="format">
+                <SelectField id="format" value={f.format} onChange={(v) => set('format', v as Format)} options={(options?.formats ?? FORMATS).map((x) => ({value: x, label: x}))} />
+              </Field>
+              <Field label="Dialect" htmlFor="dialect">
+                <SelectField id="dialect" value={f.dialect} onChange={(v) => set('dialect', v as Dialect)} options={DIALECTS} />
+              </Field>
             </div>
-            <Slider aria-labelledby="var-label" min={1} max={5} step={1} value={[f.variants]} onValueChange={([v]) => set('variants', v)} />
-          </div>
-          <Toggle id="draft" label="Draft render (faster)" checked={f.draft} onChange={(v) => set('draft', v)} />
-          <Toggle id="qafix" label="Auto-fix QA issues" checked={f.qaFix} onChange={(v) => set('qaFix', v)} />
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span id="secs-label">Length</span>
+                <span className="font-semibold text-primary">{f.seconds}s</span>
+              </div>
+              <Slider aria-labelledby="secs-label" min={10} max={90} step={5} value={[f.seconds]} onValueChange={([v]) => set('seconds', v)} />
+            </div>
+          </Panel>
+
+          <Panel title="Look & voice">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Style" htmlFor="style">
+                <SelectField id="style" value={f.style} onChange={(v) => set('style', v)} emptyLabel="Director picks" options={(options?.styles ?? []).map((x) => ({value: x.id, label: x.label}))} />
+              </Field>
+              <Field label="Music" htmlFor="music">
+                <SelectField id="music" value={f.music} onChange={(v) => set('music', v)} emptyLabel="Director picks" options={(options?.music ?? []).map((m) => ({value: m, label: m}))} />
+              </Field>
+              <Field label="Template" htmlFor="template">
+                <SelectField id="template" value={f.template} onChange={(v) => set('template', v)} emptyLabel="None (free structure)" options={(templates ?? []).map((t) => ({value: t.id, label: t.name}))} />
+              </Field>
+              <Field label="Narrator" htmlFor="gender">
+                <SelectField id="gender" value={f.gender} onChange={(v) => set('gender', v as 'male' | 'female')} options={[{value: 'male', label: 'Male'}, {value: 'female', label: 'Female'}]} />
+              </Field>
+              <Field label="Specific voice" htmlFor="voice" className="sm:col-span-2">
+                <SelectField id="voice" value={f.voice} onChange={(v) => set('voice', v)} emptyLabel="Auto (by narrator and dialect)" options={(options?.voices ?? []).map((v) => ({value: v, label: v}))} />
+              </Field>
+            </div>
+          </Panel>
+
+          <Panel title="Quality">
+            <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Quality">
+              {TIERS.map((t) => (
+                <button key={t.value} type="button" role="radio" aria-checked={f.tier === t.value} onClick={() => set('tier', t.value)} className={cn('flex flex-col gap-1 rounded-lg border p-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50', f.tier === t.value && 'border-primary bg-primary/10')}>
+                  <span className={cn('text-sm font-semibold', f.tier === t.value && 'text-primary')}>{t.label}</span>
+                  <span className="text-xs text-muted-foreground">{t.hint}</span>
+                </button>
+              ))}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3 sm:items-center">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span id="var-label">A/B variants</span>
+                  <span className="font-semibold text-primary">{f.variants}</span>
+                </div>
+                <Slider aria-labelledby="var-label" min={1} max={5} step={1} value={[f.variants]} onValueChange={([v]) => set('variants', v)} />
+              </div>
+              <Toggle id="draft" label="Draft render (faster)" checked={f.draft} onChange={(v) => set('draft', v)} />
+              <Toggle id="qafix" label="Auto-fix QA issues" checked={f.qaFix} onChange={(v) => set('qaFix', v)} />
+            </div>
+          </Panel>
+
+          <Panel title="Website">
+            <Field label="Client website (optional): facts, logo, colors" htmlFor="url">
+              <Input id="url" type="url" inputMode="url" value={f.url} onChange={(e) => set('url', e.target.value)} placeholder="https://" />
+            </Field>
+            <Toggle id="brand" label="Use brand colors" checked={f.brandTheme} disabled={!f.url.trim()} onChange={(v) => set('brandTheme', v)} />
+          </Panel>
+
+          <Panel title="Library assets">
+            {!f.client ? (
+              <p className="text-xs text-muted-foreground">Choose a client to pick its screens, clips and logo.</p>
+            ) : !assets ? (
+              <Skeleton className="h-16" />
+            ) : (
+              <>
+                <Field label="Screens">
+                  <AssetPicker label="Screens" assets={byKind('screenshot', 'image')} selected={f.screens} onChange={(v) => set('screens', v)} />
+                </Field>
+                <Field label="Clips">
+                  <AssetPicker label="Clips" assets={byKind('clip')} selected={f.clips} onChange={(v) => set('clips', v)} />
+                </Field>
+                <Field label="Logo">
+                  <AssetPicker label="Logos" single assets={byKind('logo')} selected={f.logo} onChange={(v) => set('logo', v)} />
+                </Field>
+              </>
+            )}
+          </Panel>
         </div>
 
-        <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4" aria-label="Assets">
-          <h2 className="font-title text-sm text-muted-foreground">Assets from the library</h2>
-          {!f.client ? <p className="text-xs text-muted-foreground">Choose a client to pick its screens, clips and logo.</p> : !assets ? <Skeleton className="h-16" /> : (
-            <>
-              <p className="text-xs text-muted-foreground">Screens</p>
-              <AssetPicker label="Screens" assets={byKind('screenshot', 'image')} selected={f.screens} onChange={(v) => set('screens', v)} />
-              <p className="text-xs text-muted-foreground">Clips</p>
-              <AssetPicker label="Clips" assets={byKind('clip')} selected={f.clips} onChange={(v) => set('clips', v)} />
-              <p className="text-xs text-muted-foreground">Logo</p>
-              <AssetPicker label="Logos" single assets={byKind('logo')} selected={f.logo} onChange={(v) => set('logo', v)} />
-            </>
-          )}
-        </section>
-
-        <Button type="submit" size="lg" className="font-title self-start" disabled={busy}>
-          {busy ? <Loader2 className="animate-spin" /> : <Sparkles />} Generate
-        </Button>
+        <Panel title="Summary" as="aside" className="lg:sticky lg:top-6 lg:w-96 lg:shrink-0 lg:self-start">
+          <dl className="flex flex-col gap-2 text-sm">
+            {summary.map(([k, v]) => (
+              <div key={k} className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">{k}</dt>
+                <dd dir="auto" className="min-w-0 truncate text-end font-medium">
+                  {v}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <Button type="submit" className="font-title w-full" disabled={busy}>
+            {busy ? <Loader2 className="animate-spin" /> : <Sparkles />} Generate
+          </Button>
+          <p className="text-xs text-muted-foreground">{f.draft ? 'Draft renders finish faster.' : 'Rendering takes a few minutes.'} Higher quality and more variants use more AI credit.</p>
+        </Panel>
       </form>
-    </main>
+    </PageBody>
   );
 };
 
-const Toggle: React.FC<{id: string; label: string; checked: boolean; onChange: (v: boolean) => void}> = ({id, label, checked, onChange}) => (
+const Toggle: React.FC<{id: string; label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean}> = ({id, label, checked, onChange, disabled}) => (
   <div className="flex items-center gap-2">
-    <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    <Switch id={id} checked={checked} disabled={disabled} onCheckedChange={onChange} />
     <label htmlFor={id} className="text-sm">
       {label}
     </label>
@@ -211,30 +238,39 @@ const RunView: React.FC<{id: string}> = ({id}) => {
     setRetrying(false);
   };
 
-  if (error && !run) return <p role="alert" className="m-6 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Could not load this run: {error}</p>;
-  if (loading && !run) return <div className="mx-auto w-full max-w-3xl p-6"><Skeleton className="h-64 rounded-2xl" /></div>;
+  if (error && !run) return <PageBody><ErrorBox message={`Could not load this run: ${error}`} /></PageBody>;
+  if (loading && !run) return <PageBody><Skeleton className="h-64 rounded-xl" /></PageBody>;
   if (!run) return null;
   const live = run.status === 'running' || run.status === 'waiting';
+  const pct = run.status === 'done' ? 100 : Math.round(run.progress * 100);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 sm:p-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <StatusDot status={run.status} />
-        <h1 dir="auto" className="font-title min-w-0 flex-1 truncate text-xl">
-          {run.label}
-        </h1>
-        <span className={cn('text-xs font-bold uppercase', statusText(run.status))}>{run.status}</span>
-      </div>
-      <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4" aria-label="Progress">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{live ? 'Creating your video' : run.status === 'done' ? 'Finished' : 'Stopped'}</span>
-          <span className="font-semibold text-primary">{run.status === 'done' ? 100 : Math.round(run.progress * 100)}%</span>
+    <PageBody>
+      <PageTitle title="New video" hint="Progress" />
+      <Panel
+        className="mx-auto w-full max-w-3xl"
+        title={
+          <span className="flex min-w-0 items-center gap-2">
+            <StatusDot status={run.status} />
+            <span dir="auto" className="truncate">
+              {run.label}
+            </span>
+          </span>
+        }
+        actions={<StatusLabel status={run.status} />}
+      >
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{live ? 'Creating your video' : run.status === 'done' ? 'Finished' : 'Stopped'}</span>
+            <span className="font-semibold text-primary">{pct}%</span>
+          </div>
+          <Progress value={pct} className="bg-track" />
+          <p dir="auto" className={cn('text-sm break-words', run.status === 'failed' && 'text-destructive')}>
+            {run.status === 'failed' ? `Failed at: ${run.step}` : run.step}
+          </p>
+          {live && <p className="text-xs text-muted-foreground">This may take a few minutes. You can leave this page; the run continues in the <Link href="/queue" className="underline">Queue</Link>.</p>}
         </div>
-        <Progress value={run.status === 'done' ? 100 : Math.round(run.progress * 100)} className="bg-track" />
-        <p dir="auto" className={cn('text-sm break-words', run.status === 'failed' && 'text-destructive')}>
-          {run.status === 'failed' ? `Failed at: ${run.step}` : run.step}
-        </p>
-        {live && <p className="text-xs text-muted-foreground">This may take a few minutes. You can leave this page; the run continues in the <Link href="/queue" className="underline">Queue</Link>.</p>}
+        <LogView log={run.log} className="max-h-96 min-h-48" />
         <div className="flex flex-wrap gap-2">
           {run.status === 'done' && run.jobId && (
             <>
@@ -257,8 +293,7 @@ const RunView: React.FC<{id: string}> = ({id}) => {
             </Button>
           )}
         </div>
-      </section>
-      <LogView log={run.log} className="max-h-96 min-h-48" />
-    </main>
+      </Panel>
+    </PageBody>
   );
 };

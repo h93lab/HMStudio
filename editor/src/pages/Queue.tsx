@@ -1,24 +1,32 @@
 import {useMemo, useState} from 'react';
 import {toast} from 'sonner';
 import {AppShell, PageTitle} from '@/components/AppShell';
-import {LogView, StatusDot, statusText} from '@/components/studio/bits';
+import {EmptyState, ErrorBox, FilterTabs, LogView, PageBody, Panel, StatusDot, StatusLabel} from '@/components/kit';
 import {errMsg, usePoll} from '@/components/studio/usePoll';
+import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Progress} from '@/components/ui/progress';
 import {Skeleton} from '@/components/ui/skeleton';
-import {Tabs, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {api, type Run} from '@/lib/api';
-import {cn} from '@/lib/utils';
 import {Link, navigate} from '@/lib/router';
+import {cn} from '@/lib/utils';
 
-const TABS = {all: 'All', running: 'Running', failed: 'Failed', done: 'Done'} as const;
-type Tab = keyof typeof TABS;
-const inTab = (r: Run, t: Tab) => t === 'all' || (t === 'running' ? r.status === 'running' || r.status === 'waiting' : t === 'failed' ? r.status === 'failed' || r.status === 'cancelled' : r.status === 'done');
+const TABS = [
+  {value: 'all', label: 'All'},
+  {value: 'running', label: 'Running'},
+  {value: 'failed', label: 'Failed'},
+  {value: 'done', label: 'Done'},
+];
+const inTab = (r: Run, t: string) => t === 'all' || (t === 'running' ? r.status === 'running' || r.status === 'waiting' : t === 'failed' ? r.status === 'failed' || r.status === 'cancelled' : r.status === 'done');
+const KIND: Record<Run['kind'], string> = {make: 'Make', revise: 'Revise', render: 'Render', reformat: 'Reformat'};
+// Legacy runs were labelled with their raw id.
+// Older runs carry the kind in their label ("… · make"); the kind already shows as a badge.
+const runLabel = (r: Run) => (r.label === r.id ? `Run · ${new Date(r.startedAt).toLocaleString()}` : r.label.replace(/ · (make|revise|render|reformat)$/i, ''));
 
 export const QueuePage: React.FC<{params: Record<string, string>}> = () => {
   const {data: runs, error, loading, reload} = usePoll(api.runs, 2000);
   const {data: jobs} = usePoll(api.jobs, 10000);
-  const [tab, setTab] = useState<Tab>('all');
+  const [tab, setTab] = useState('all');
   const [picked, setPicked] = useState<string>();
 
   const sorted = useMemo(() => [...(runs ?? [])].sort((a, b) => b.startedAt.localeCompare(a.startedAt)), [runs]);
@@ -41,79 +49,73 @@ export const QueuePage: React.FC<{params: Record<string, string>}> = () => {
 
   return (
     <AppShell>
-      <div className="grid flex-1 gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_380px]">
-        <main className="flex min-w-0 flex-col gap-3">
-          <PageTitle title="Queue" hint={`${active} running · ${waiting} waiting · renders one at a time`}>
-            <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-              <TabsList>
-                {(Object.keys(TABS) as Tab[]).map((t) => (
-                  <TabsTrigger key={t} value={t}>
-                    {TABS[t]}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </PageTitle>
-          {error && (
-            <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              Could not load the queue: {error}
-            </p>
-          )}
-          {loading && !runs && Array.from({length: 4}, (_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}
-          {runs && list.length === 0 && <p className="rounded-2xl border border-dashed py-12 text-center text-sm text-muted-foreground">Nothing here.</p>}
-          {list.map((r) => (
-            <div key={r.id} className={cn('flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-3', r.status === 'running' && 'border-primary/40', r.id === selected && 'ring-1 ring-ring/60')}>
-              <button type="button" onClick={() => setPicked(r.id)} aria-label={`Show log: ${r.label}`} aria-pressed={r.id === selected} className="flex min-w-0 flex-1 basis-60 items-start gap-3 text-start">
-                <StatusDot status={r.status} className="mt-1.5" />
-                <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="flex flex-wrap items-center gap-x-2 text-sm">
-                    <span dir="auto" className="truncate font-semibold">
-                      {r.label}
+      <PageBody>
+        <PageTitle title="Queue" hint={`${active} running · ${waiting} waiting · renders one at a time`}>
+          <FilterTabs label="Filter runs" value={tab} onChange={setTab} items={TABS} />
+        </PageTitle>
+        {error && <ErrorBox message={`Could not load the queue: ${error}`} onRetry={() => void reload()} />}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <Panel className="flex-1" aria-label="Runs">
+            {loading && !runs && Array.from({length: 4}, (_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
+            {runs && list.length === 0 && <EmptyState title="Nothing here" text="Runs show up when you create or revise a video." />}
+            {list.map((r) => (
+              <div key={r.id} className={cn('flex flex-wrap items-center gap-3 rounded-lg border p-3', r.id === selected && 'border-primary')}>
+                <button type="button" onClick={() => setPicked(r.id)} aria-label={`Show log: ${runLabel(r)}`} aria-pressed={r.id === selected} className="flex min-w-0 flex-1 basis-60 items-start gap-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                  <StatusDot status={r.status} className="mt-1.5" />
+                  <span className="flex min-w-0 flex-1 flex-col gap-2">
+                    <span className="flex flex-wrap items-center gap-2 text-sm">
+                      <span dir="auto" className="min-w-0 truncate font-semibold">
+                        {runLabel(r)}
+                      </span>
+                      <Badge variant="outline">{KIND[r.kind] ?? r.kind}</Badge>
+                      <StatusLabel status={r.status} />
                     </span>
-                    <span className="text-xs text-muted-foreground">{r.kind}</span>
-                    <span className={cn('text-xs font-bold uppercase', statusText(r.status))}>{r.status}</span>
+                    <Progress value={r.status === 'done' ? 100 : Math.round(r.progress * 100)} className="h-1.5 bg-track" />
+                    <span dir="auto" className="truncate text-xs text-muted-foreground">
+                      {r.step}
+                    </span>
                   </span>
-                  <Progress value={r.status === 'done' ? 100 : Math.round(r.progress * 100)} className="h-1.5 bg-track" />
-                  <span dir="auto" className="truncate text-xs text-muted-foreground">
-                    {r.step}
-                  </span>
-                </span>
-              </button>
-              <div className="flex gap-2">
-                {r.status === 'done' && r.jobId && abJobs.has(r.jobId) && (
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/compare/${r.jobId}`}>Compare A/B</Link>
-                  </Button>
-                )}
-                {r.status === 'done' && r.jobId && (
-                  <Button size="sm" onClick={() => navigate(`/edit/${r.jobId}`)}>
-                    Open
-                  </Button>
-                )}
-                {(r.status === 'running' || r.status === 'waiting') && (
-                  <Button variant="outline" size="sm" onClick={() => void act(() => api.cancelRun(r.id), 'Cancelled')}>
-                    Cancel
-                  </Button>
-                )}
-                {(r.status === 'failed' || r.status === 'cancelled') && (
-                  <Button variant="outline" size="sm" onClick={() => void act(() => api.retryRun(r.id), 'Retry started')}>
-                    Retry
-                  </Button>
-                )}
+                </button>
+                <div className="flex items-center gap-2">
+                  {r.status === 'done' && r.jobId && abJobs.has(r.jobId) && (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/compare/${r.jobId}`}>Compare A/B</Link>
+                    </Button>
+                  )}
+                  {r.status === 'done' && r.jobId && (
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/edit/${r.jobId}`)}>
+                      Open
+                    </Button>
+                  )}
+                  {(r.status === 'running' || r.status === 'waiting') && (
+                    <Button variant="outline" size="sm" onClick={() => void act(() => api.cancelRun(r.id), 'Cancelled')}>
+                      Cancel
+                    </Button>
+                  )}
+                  {(r.status === 'failed' || r.status === 'cancelled') && (
+                    <Button variant="outline" size="sm" onClick={() => void act(() => api.retryRun(r.id), 'Retry started')}>
+                      Retry
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </main>
-        <aside className="flex min-h-64 flex-col gap-2 rounded-2xl border bg-card p-3 lg:max-h-[calc(100vh-9rem)]" aria-label="Run log">
-          <div className="flex items-center justify-between text-sm">
-            <span dir="auto" className="truncate font-semibold">
-              Log{detail ? ` · ${detail.label}` : ''}
-            </span>
-            {detail?.status === 'running' && <span className="text-xs text-primary">live</span>}
-          </div>
-          <LogView log={detail?.log} className="flex-1" />
-        </aside>
-      </div>
+            ))}
+          </Panel>
+          <Panel
+            as="aside"
+            aria-label="Run log"
+            title={
+              <span dir="auto" className="block max-w-full truncate">
+                {detail ? `Log · ${runLabel(detail)}` : 'Log'}
+              </span>
+            }
+            actions={detail?.status === 'running' ? <span className="text-xs text-primary">live</span> : undefined}
+            className="min-h-64 lg:sticky lg:top-6 lg:max-h-[calc(100vh-8rem)] lg:w-96 lg:shrink-0"
+          >
+            <LogView log={detail?.log} className="min-h-0 flex-1" />
+          </Panel>
+        </div>
+      </PageBody>
     </AppShell>
   );
 };

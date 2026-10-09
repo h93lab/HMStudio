@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import {Plus, Search} from 'lucide-react';
 import {AppShell, PageTitle} from '@/components/AppShell';
-import {SimpleSelect} from '@/components/studio/bits';
+import {EmptyState, ErrorBox, PageBody, SelectField} from '@/components/kit';
 import {usePoll} from '@/components/studio/usePoll';
 import {VideoCard} from '@/components/studio/VideoCard';
 import {Button} from '@/components/ui/button';
@@ -29,38 +29,33 @@ export const ProjectsPage: React.FC<{params: Record<string, string>}> = () => {
 
   return (
     <AppShell>
-      <main className="flex flex-col gap-4 p-4 sm:p-5">
+      <PageBody>
         <PageTitle title="Projects" hint={jobs && `${jobs.length} videos · ${versions} versions`}>
           <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input aria-label="Search projects" dir="auto" placeholder="Search projects…" value={q} onChange={(e) => setQ(e.target.value)} className="bg-[#141415] ps-9" />
+            <Input aria-label="Search projects" dir="auto" placeholder="Search projects…" value={q} onChange={(e) => setQ(e.target.value)} className="ps-9" />
           </div>
-          <SimpleSelect id="filter-client" value={client} onChange={setClient} emptyLabel="All clients" options={clients} className="w-full sm:w-44" />
+          <SelectField id="filter-client" value={client} onChange={setClient} emptyLabel="All clients" options={clients} className="w-full sm:w-44" />
         </PageTitle>
-        {error && (
-          <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-            Could not load projects: {error}{' '}
-            <button className="underline" onClick={() => void reload()}>
-              Retry
-            </button>
-          </p>
-        )}
+        {error && <ErrorBox message={`Could not load projects: ${error}`} onRetry={() => void reload()} />}
         {loading && !jobs ? (
           <Grid>
             {Array.from({length: 5}, (_, i) => (
-              <Skeleton key={i} className="h-72 rounded-2xl" />
+              <Skeleton key={i} className="h-96 rounded-xl" />
             ))}
           </Grid>
         ) : jobs && jobs.length === 0 ? (
-          <div className="grid place-items-center gap-3 rounded-2xl border border-dashed py-20 text-center">
-            <p className="font-title text-xl">No videos yet</p>
-            <p className="text-sm text-muted-foreground">Start from an idea; the studio writes, voices and renders it.</p>
-            <Button className="font-title" onClick={() => navigate('/new')}>
-              <Plus /> Create your first video
-            </Button>
-          </div>
+          <EmptyState
+            title="No videos yet"
+            text="Start from an idea; the studio writes, voices and renders it."
+            action={
+              <Button className="font-title" onClick={() => navigate('/new')}>
+                <Plus /> Create your first video
+              </Button>
+            }
+          />
         ) : shown.length === 0 ? (
-          jobs && <p className="py-12 text-center text-sm text-muted-foreground">No videos match this filter.</p>
+          jobs && <EmptyState title="No videos match this filter" />
         ) : (
           <Grid>
             {shown.map((j) => (
@@ -68,7 +63,7 @@ export const ProjectsPage: React.FC<{params: Record<string, string>}> = () => {
             ))}
           </Grid>
         )}
-      </main>
+      </PageBody>
     </AppShell>
   );
 };

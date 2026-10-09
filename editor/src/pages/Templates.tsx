@@ -1,8 +1,9 @@
 import {useState} from 'react';
-import {Plus} from 'lucide-react';
+import {LayoutTemplate, Plus} from 'lucide-react';
 import {toast} from 'sonner';
 import {AppShell, PageTitle} from '@/components/AppShell';
-import {Chips, Empty, errMsg, ErrorBox, useLoad} from '@/components/library/common';
+import {EmptyState, ErrorBox, FilterTabs, PageBody} from '@/components/kit';
+import {errMsg, useLoad} from '@/components/library/common';
 import {CATEGORIES, NewTemplateDialog} from '@/components/library/NewTemplateDialog';
 import {TemplateCard} from '@/components/library/TemplateCard';
 import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle} from '@/components/ui/alert-dialog';
@@ -34,30 +35,43 @@ export const TemplatesPage: React.FC<{params: Record<string, string>}> = () => {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-4 p-4 sm:p-5">
+      <PageBody>
         <PageTitle title="Templates" hint="Saved video structures. The AI fills the words; you keep the rhythm.">
-          <Chips label="Category" value={tab} onChange={setTab} items={TABS} />
           <Button className="font-title" onClick={() => setCreating(true)}>
             <Plus /> New template
           </Button>
         </PageTitle>
+        <FilterTabs label="Category" value={tab} onChange={setTab} items={TABS} className="w-fit" />
         {error && <ErrorBox message={error} onRetry={reload} />}
         {loading && !data ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-44 rounded-2xl" />
+              <Skeleton key={i} className="h-44 rounded-xl" />
             ))}
           </div>
         ) : shown.length === 0 ? (
-          !error && <Empty>{data?.length ? 'No templates in this category.' : 'No templates yet. Save a project structure to reuse it.'}</Empty>
+          !error && (
+            <EmptyState
+              icon={<LayoutTemplate />}
+              title={data?.length ? 'No templates in this category' : 'No templates yet'}
+              text={data?.length ? undefined : 'Save a project structure to reuse it.'}
+              action={
+                data?.length ? undefined : (
+                  <Button variant="outline" size="sm" onClick={() => setCreating(true)}>
+                    <Plus /> New template
+                  </Button>
+                )
+              }
+            />
+          )
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {shown.map((t) => (
               <TemplateCard key={t.id} template={t} onDelete={setToDelete} />
             ))}
           </div>
         )}
-      </div>
+      </PageBody>
       <NewTemplateDialog open={creating} onOpenChange={setCreating} onDone={reload} />
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>

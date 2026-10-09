@@ -1,8 +1,9 @@
 import {useMemo, useState} from 'react';
-import {ArrowLeft, Loader2, Plus, Save, Sparkles} from 'lucide-react';
+import {ArrowLeft, Loader2, Palette, Plus, Save, Sparkles} from 'lucide-react';
 import {toast} from 'sonner';
 import {AppShell, PageTitle} from '@/components/AppShell';
-import {Empty, errMsg, ErrorBox, useLoad} from '@/components/library/common';
+import {EmptyState, ErrorBox, Field, PageBody, Panel} from '@/components/kit';
+import {errMsg, useLoad} from '@/components/library/common';
 import {PackForm} from '@/components/styles/PackForm';
 import {StyleCard} from '@/components/styles/StyleCard';
 import {StylePreview} from '@/components/styles/StylePreview';
@@ -10,7 +11,6 @@ import {useUnsavedGuard} from '@/components/styles/useUnsavedGuard';
 import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle} from '@/components/ui/alert-dialog';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
-import {Label} from '@/components/ui/label';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Textarea} from '@/components/ui/textarea';
 import {api, type CustomStyle} from '@/lib/api';
@@ -38,31 +38,42 @@ const StyleList = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-5">
+    <PageBody>
       <PageTitle title="Styles" hint="The motion personality of a video: camera, transitions, finish.">
         <Button className="font-title" onClick={() => navigate('/styles/new')}>
           <Plus /> New style
         </Button>
       </PageTitle>
       {error && <ErrorBox message={error} onRetry={reload} />}
-      <h2 className="font-title text-sm text-muted-foreground">Your styles</h2>
+      <h2 className="font-title text-sm">Your styles</h2>
       {loading && !data ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-36 rounded-2xl" />
+            <Skeleton key={i} className="h-36 rounded-xl" />
           ))}
         </div>
       ) : data?.length ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data.map((s) => (
             <StyleCard key={s.id} name={s.name} prompt={s.prompt} pack={s.pack} editHref={`/styles/${s.id}`} onDelete={() => setToDelete(s)} />
           ))}
         </div>
       ) : (
-        !error && <Empty>No custom styles yet. Describe a look and let the AI build it.</Empty>
+        !error && (
+          <EmptyState
+            icon={<Palette />}
+            title="No custom styles yet"
+            text="Describe a look and let the AI build it."
+            action={
+              <Button variant="outline" size="sm" onClick={() => navigate('/styles/new')}>
+                <Plus /> New style
+              </Button>
+            }
+          />
+        )
       )}
-      <h2 className="mt-2 font-title text-sm text-muted-foreground">Built-in</h2>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <h2 className="font-title text-sm">Built-in</h2>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {packIds.map((id) => (
           <StyleCard key={id} builtIn name={packs[id].label} pack={packs[id]} editHref={`/styles/new?base=${id}`} />
         ))}
@@ -79,7 +90,7 @@ const StyleList = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageBody>
   );
 };
 
@@ -92,9 +103,9 @@ const StyleEditor: React.FC<{id: string}> = ({id}) => {
   const theme = clients.data?.find((c) => !c.archived)?.theme;
   const existing = isNew ? undefined : styles.data?.find((s) => s.id === id);
 
-  if (!isNew && styles.loading && !styles.data) return <Skeleton className="m-5 h-96 rounded-2xl" />;
-  if (styles.error) return <div className="p-5"><ErrorBox message={styles.error} onRetry={styles.reload} /></div>;
-  if (!isNew && !existing) return <div className="p-5"><Empty>No style "{id}". <Link href="/styles" className="text-primary underline">Back to styles</Link></Empty></div>;
+  if (!isNew && styles.loading && !styles.data) return <PageBody><Skeleton className="h-96 rounded-xl" /></PageBody>;
+  if (styles.error) return <PageBody><ErrorBox message={styles.error} onRetry={styles.reload} /></PageBody>;
+  if (!isNew && !existing) return <PageBody><EmptyState title={`No style "${id}"`} action={<Button asChild variant="outline" size="sm"><Link href="/styles">Back to styles</Link></Button>} /></PageBody>;
 
   const builtIn = packIds.find((p) => p === base);
   const start = existing ? {name: existing.name, prompt: existing.prompt, pack: existing.pack} : {name: builtIn ? `${packs[builtIn].label} (custom)` : '', prompt: '', pack: structuredClone(packs[builtIn ?? 'premium-tech'])};
@@ -147,7 +158,7 @@ const Form: React.FC<{id?: string; start: Draft; hasPack: boolean; theme: import
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-5">
+    <PageBody>
       <PageTitle title={id ? 'Edit style' : 'New style'} hint={dirty ? <span className="text-amber-400">● Unsaved changes</span> : undefined}>
         <Button asChild variant="outline">
           <Link href="/styles">
@@ -158,38 +169,35 @@ const Form: React.FC<{id?: string; start: Draft; hasPack: boolean; theme: import
           {saving ? <Loader2 className="animate-spin" /> : <Save />} Save
         </Button>
       </PageTitle>
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="style-name" className="text-xs text-muted-foreground">
-                Name
-              </Label>
-              <Input id="style-name" dir="auto" value={draft.name} maxLength={60} onChange={(e) => setDraft({...draft, name: e.target.value})} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="style-prompt" className="text-xs text-muted-foreground">
-                Describe the look
-              </Label>
-              <Textarea id="style-prompt" dir="auto" rows={3} value={draft.prompt} onChange={(e) => setDraft({...draft, prompt: e.target.value})} placeholder="Luxurious and calm: gold on black, slow elegant motion, soft film grain" />
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+        <div className="flex min-w-0 flex-1 flex-col gap-5">
+          <Panel title="Describe">
+            <div className="flex flex-col gap-3">
+              <Field label="Name" htmlFor="style-name">
+                <Input id="style-name" dir="auto" value={draft.name} maxLength={60} onChange={(e) => setDraft({...draft, name: e.target.value})} />
+              </Field>
+              <Field label="Describe the look" htmlFor="style-prompt">
+                <Textarea id="style-prompt" dir="auto" rows={3} value={draft.prompt} onChange={(e) => setDraft({...draft, prompt: e.target.value})} placeholder="Luxurious and calm: gold on black, slow elegant motion, soft film grain" />
+              </Field>
             </div>
             <div>
               <Button variant="outline" onClick={() => void generate()} disabled={generating}>
                 {generating ? <Loader2 className="animate-spin" /> : <Sparkles />} {hasPack ? 'Refine with AI' : 'Generate with AI'}
               </Button>
             </div>
-            {notes.length > 0 && (
-              <ul aria-label="AI notes" className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
+          </Panel>
+          {notes.length > 0 && (
+            <Panel title="AI notes">
+              <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
                 {notes.map((n, i) => (
                   <li key={i} dir="auto">
                     {n}
                   </li>
                 ))}
               </ul>
-            )}
-          </section>
-          <section className="flex flex-col gap-4 rounded-2xl border bg-card p-4">
-            <h2 className="font-title text-sm text-muted-foreground">Fine-tune</h2>
+            </Panel>
+          )}
+          <Panel title="Fine-tune">
             <PackForm
               pack={draft.pack}
               onChange={(pack) => {
@@ -197,14 +205,13 @@ const Form: React.FC<{id?: string; start: Draft; hasPack: boolean; theme: import
                 setHasPack(true);
               }}
             />
-          </section>
+          </Panel>
         </div>
-        <aside className="flex flex-col gap-2 lg:sticky lg:top-4 lg:self-start">
-          <h2 className="font-title text-sm text-muted-foreground">Live preview</h2>
+        <Panel as="aside" title="Live preview" className="lg:sticky lg:top-4 lg:w-96 lg:shrink-0">
           <StylePreview pack={preview} theme={theme} />
           <p className="text-center text-xs text-muted-foreground">Sample video with {theme ? 'the first client brand' : 'the default brand'}.</p>
-        </aside>
+        </Panel>
       </div>
-    </div>
+    </PageBody>
   );
 };
