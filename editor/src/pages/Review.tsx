@@ -91,7 +91,7 @@ export const ReviewPage: React.FC<{params: Record<string, string>}> = ({params})
         {review && (
           <div className="flex flex-1 flex-col gap-4 p-4">
             {review.video ? (
-              <video ref={video} src={review.video} poster={review.cover} controls playsInline preload="metadata" onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)} className="max-h-[70vh] w-full rounded-xl bg-black object-contain" />
+              <video ref={video} src={review.video} poster={review.cover} controls playsInline preload="metadata" onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)} className="max-h-[58vh] w-full rounded-xl bg-black object-contain" />
             ) : (
               <div className="grid aspect-[9/16] max-h-[60vh] w-full place-items-center rounded-xl bg-card text-sm text-muted-foreground">
                 <span className="flex items-center gap-2">
@@ -131,7 +131,7 @@ export const ReviewPage: React.FC<{params: Record<string, string>}> = ({params})
                   <button
                     type="button"
                     aria-label={`Jump to ${mmss(c.time)}`}
-                    className="h-fit rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary"
+                    className="h-fit rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
                     onClick={() => {
                       if (video.current) video.current.currentTime = c.time;
                     }}
@@ -150,7 +150,7 @@ export const ReviewPage: React.FC<{params: Record<string, string>}> = ({params})
               ))}
             </section>
 
-            <div className="sticky bottom-0 mt-auto grid grid-cols-2 gap-2 bg-background/95 py-3">
+            <div className="sticky bottom-0 -mx-4 -mb-4 mt-auto grid grid-cols-2 gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur">
               <Button variant="outline" disabled={busy} onClick={() => void decide('changes')}>
                 Request changes
               </Button>

@@ -162,7 +162,7 @@ export const ClientEditor: React.FC<{profile: ClientProfile; onChanged: (nextId?
           ) : logos.data && logos.data.length > 0 ? (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Logo assets">
               {logos.data.map((a) => (
-                <button key={a.name} type="button" aria-pressed={theme.logo === a.url} onClick={() => setTheme({logo: a.url})} className={`flex items-center gap-2 rounded-lg border p-2 pe-3 text-xs ${theme.logo === a.url ? 'border-primary' : ''}`}>
+                <button key={a.name} type="button" aria-pressed={theme.logo === a.url} onClick={() => setTheme({logo: a.url})} className={`flex items-center gap-2 rounded-lg border p-2 pe-3 text-xs transition-colors hover:border-muted-foreground/50 ${theme.logo === a.url ? 'border-primary' : ''}`}>
                   <img src={a.url} alt="" className="size-8 rounded-md object-contain" />
                   <span className="max-w-32 truncate" dir="auto">
                     {a.name}

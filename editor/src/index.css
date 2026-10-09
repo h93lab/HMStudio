@@ -70,6 +70,8 @@
 }
 
 @layer base {
+  /* One visible keyboard focus everywhere; shadcn controls override it with their own ring. */
+  :where(a, button, summary, [role='button'], [role='tab'], [role='radio'], [role='switch'], [tabindex]):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   * { @apply border-border outline-ring/50; }
   html, body, #root { @apply h-full; }
   body { @apply bg-background text-foreground font-sans antialiased; color-scheme: dark; }

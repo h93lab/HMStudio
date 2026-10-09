@@ -7,7 +7,7 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Progress} from '@/components/ui/progress';
 import {Skeleton} from '@/components/ui/skeleton';
-import {api, type Run} from '@/lib/api';
+import {api, type Run, runTitle} from '@/lib/api';
 import {Link, navigate} from '@/lib/router';
 import {cn} from '@/lib/utils';
 
@@ -20,8 +20,7 @@ const TABS = [
 const inTab = (r: Run, t: string) => t === 'all' || (t === 'running' ? r.status === 'running' || r.status === 'waiting' : t === 'failed' ? r.status === 'failed' || r.status === 'cancelled' : r.status === 'done');
 const KIND: Record<Run['kind'], string> = {make: 'Make', revise: 'Revise', render: 'Render', reformat: 'Reformat'};
 // Legacy runs were labelled with their raw id.
-// Older runs carry the kind in their label ("… · make"); the kind already shows as a badge.
-const runLabel = (r: Run) => (r.label === r.id ? `Run · ${new Date(r.startedAt).toLocaleString()}` : r.label.replace(/ · (make|revise|render|reformat)$/i, ''));
+const runLabel = runTitle;
 
 export const QueuePage: React.FC<{params: Record<string, string>}> = () => {
   const {data: runs, error, loading, reload} = usePoll(api.runs, 2000);
@@ -59,7 +58,7 @@ export const QueuePage: React.FC<{params: Record<string, string>}> = () => {
             {loading && !runs && Array.from({length: 4}, (_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
             {runs && list.length === 0 && <EmptyState title="Nothing here" text="Runs show up when you create or revise a video." />}
             {list.map((r) => (
-              <div key={r.id} className={cn('flex flex-wrap items-center gap-3 rounded-lg border p-3', r.id === selected && 'border-primary')}>
+              <div key={r.id} className={cn('flex flex-wrap items-center gap-3 rounded-lg border p-3 transition-colors hover:border-muted-foreground/50', r.id === selected && 'border-primary hover:border-primary')}>
                 <button type="button" onClick={() => setPicked(r.id)} aria-label={`Show log: ${runLabel(r)}`} aria-pressed={r.id === selected} className="flex min-w-0 flex-1 basis-60 items-start gap-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
                   <StatusDot status={r.status} className="mt-1.5" />
                   <span className="flex min-w-0 flex-1 flex-col gap-2">

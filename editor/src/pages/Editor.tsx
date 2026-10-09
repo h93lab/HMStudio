@@ -490,7 +490,7 @@ export const EditorPage: React.FC<{params: Record<string, string>}> = ({params})
           <Panel title="Project media" meta={`${props.scenes.length} scenes · ${(total / FPS).toFixed(0)}s`}>
             <div className="grid grid-cols-4 gap-2">
               {props.scenes.map((s, i) => (
-                <div key={i} draggable onDragStart={() => setDragFrom(i)} onDragOver={(e) => e.preventDefault()} onDrop={() => dragFrom !== null && move(dragFrom, i)} className={cn('group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-lg bg-field ring-2', i === sel ? 'ring-primary' : 'ring-transparent')} onClick={() => seek(i)} title={`${i + 1}. ${s.type} · drag to reorder`}>
+                <div key={i} draggable onDragStart={() => setDragFrom(i)} onDragOver={(e) => e.preventDefault()} onDrop={() => dragFrom !== null && move(dragFrom, i)} className={cn('group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-lg bg-field ring-2 transition-shadow', i === sel ? 'ring-primary' : 'ring-transparent hover:ring-border')} onClick={() => seek(i)} role="button" tabIndex={0} aria-label={`Scene ${i + 1}: ${s.type}`} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), seek(i))} title={`${i + 1}. ${s.type} · drag to reorder`}>
                   {stills[i] ? <img src={stills[i]} alt={sceneLabel(s)} className="size-full object-cover" /> : <span className="grid size-full place-items-center text-[11px] text-muted-foreground">{s.type}</span>}
                   <ThumbBadge className="absolute start-1 top-1">{i + 1}</ThumbBadge>
                   <ThumbBadge className="absolute end-1 bottom-1">{(s.duration / FPS).toFixed(1)}s</ThumbBadge>

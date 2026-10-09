@@ -13,7 +13,7 @@ import {Skeleton} from '@/components/ui/skeleton';
 import {Slider} from '@/components/ui/slider';
 import {Switch} from '@/components/ui/switch';
 import {Textarea} from '@/components/ui/textarea';
-import {api, type ClientProfile, type Dialect, type Format, type MakeRequest, type Tier} from '@/lib/api';
+import {api, runTitle, type ClientProfile, type Dialect, type Format, type MakeRequest, type Tier} from '@/lib/api';
 import {Link, navigate} from '@/lib/router';
 import {cn} from '@/lib/utils';
 
@@ -141,7 +141,7 @@ const CreateForm: React.FC = () => {
           <Panel title="Quality">
             <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Quality">
               {TIERS.map((t) => (
-                <button key={t.value} type="button" role="radio" aria-checked={f.tier === t.value} onClick={() => set('tier', t.value)} className={cn('flex flex-col gap-1 rounded-lg border p-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50', f.tier === t.value && 'border-primary bg-primary/10')}>
+                <button key={t.value} type="button" role="radio" aria-checked={f.tier === t.value} onClick={() => set('tier', t.value)} className={cn('flex flex-col gap-1 rounded-lg border p-3 text-start transition-colors outline-none hover:border-muted-foreground/50 focus-visible:ring-[3px] focus-visible:ring-ring/50', f.tier === t.value && 'border-primary bg-primary/10')}>
                   <span className={cn('text-sm font-semibold', f.tier === t.value && 'text-primary')}>{t.label}</span>
                   <span className="text-xs text-muted-foreground">{t.hint}</span>
                 </button>
@@ -226,6 +226,13 @@ const RunView: React.FC<{id: string}> = ({id}) => {
     return r;
   }, ms, [id]);
   const [retrying, setRetrying] = useState(false);
+  // Compare only makes sense when the finished job really has A/B variants.
+  const [variants, setVariants] = useState(0);
+  const doneJob = run?.status === 'done' ? run.jobId : undefined;
+  useEffect(() => {
+    if (!doneJob) return;
+    api.job(doneJob).then((j) => setVariants(j.versions.filter((v) => v.variant).length), () => setVariants(0));
+  }, [doneJob]);
 
   const retry = async () => {
     setRetrying(true);
@@ -253,7 +260,7 @@ const RunView: React.FC<{id: string}> = ({id}) => {
           <span className="flex min-w-0 items-center gap-2">
             <StatusDot status={run.status} />
             <span dir="auto" className="truncate">
-              {run.label}
+              {runTitle(run)}
             </span>
           </span>
         }
@@ -277,9 +284,11 @@ const RunView: React.FC<{id: string}> = ({id}) => {
               <Button className="font-title" onClick={() => navigate(`/edit/${run.jobId}`)}>
                 Open editor
               </Button>
-              <Button variant="outline" onClick={() => navigate(`/compare/${run.jobId}`)}>
-                Compare A/B
-              </Button>
+              {variants > 1 && (
+                <Button variant="outline" onClick={() => navigate(`/compare/${run.jobId}`)}>
+                  Compare A/B
+                </Button>
+              )}
             </>
           )}
           {(run.status === 'failed' || run.status === 'cancelled') && (

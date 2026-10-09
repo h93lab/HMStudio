@@ -97,7 +97,7 @@ export const ExportDialog: React.FC<Props> = ({open, onOpenChange, job, v, dirty
                   {(Object.keys(USE) as Format[]).map((f) => {
                     const on = formats.includes(f);
                     return (
-                      <label key={f} className={cn('flex cursor-pointer items-start gap-2 rounded-lg border p-3', on && 'border-primary bg-primary/10')}>
+                      <label key={f} className={cn('flex cursor-pointer items-start gap-2 rounded-lg border p-3 transition-colors hover:border-muted-foreground/50', on && 'border-primary bg-primary/10 hover:border-primary')}>
                         <Checkbox checked={on} disabled={runs !== null} onCheckedChange={(c) => setFormats((x) => (c ? [...x, f] : x.filter((y) => y !== f)))} className="mt-0.5" />
                         <span className="flex flex-col">
                           <span className="font-semibold">{f}</span>

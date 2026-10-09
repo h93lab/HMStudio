@@ -236,4 +236,7 @@ export const api = {
   decide: (id: string, body: {token: string; status: 'approved' | 'changes'}) => req<{ok: true}>('POST', `/api/review/${id}/decision`, body),
 };
 
+// Display title of a run: older runs carry their kind in the label ("… · make") and legacy ones only an id.
+export const runTitle = (r: Run) => (r.label === r.id ? `Run · ${new Date(r.startedAt).toLocaleString()}` : r.label.replace(/ · (make|revise|render|reformat)$/i, ''));
+
 export const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
