@@ -1,0 +1,91 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Motion Studio theme: graphite surfaces + electric lime, from the owner's reference design. */
+:root {
+  --radius: 0.75rem;
+  --background: #2a2a2b;
+  --foreground: #f1f1f1;
+  --card: #1d1d1e;
+  --card-foreground: #f1f1f1;
+  --popover: #222223;
+  --popover-foreground: #f1f1f1;
+  --primary: #dcff2a;
+  --primary-foreground: #111111;
+  --secondary: #2b2b2d;
+  --secondary-foreground: #f1f1f1;
+  --muted: #262628;
+  --muted-foreground: #8d8d93;
+  --accent: #2f2f32;
+  --accent-foreground: #f1f1f1;
+  --destructive: #ff5468;
+  --border: #323235;
+  --input: #2e2e31;
+  --ring: #dcff2a;
+  --chart-1: #dcff2a;
+  --chart-2: #4f9dff;
+  --chart-3: #ff5d5d;
+  --chart-4: #b081ff;
+  --chart-5: #ffb547;
+  --panel: #19191a;
+  --track: #222224;
+}
+
+@theme inline {
+  --font-sans: "Inter", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-display: "Oswald", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-panel: var(--panel);
+  --color-track: var(--track);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html, body, #root { @apply h-full; }
+  body { @apply bg-background text-foreground font-sans antialiased; color-scheme: dark; }
+}
+
+/* Condensed uppercase labels (section titles, primary buttons) like the reference. */
+@utility font-title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+}
+
+/* Hatched fill for caption/text track clips. */
+@utility hatch {
+  background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.05) 0 6px, transparent 6px 12px);
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #3a3a3d; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }

@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "studio",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "remotion",
+        "studio",
+        "--port",
+        "3000",
+        "--no-open"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "zsh",
+      "runtimeArgs": [
+        "-c",
+        "source ~/.zshrc >/dev/null 2>&1; npm run dashboard"
+      ],
+      "port": 4777
+    }
+  ]
+}

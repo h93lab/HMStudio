@@ -1,0 +1,11 @@
+node_modules
+out
+jobs
+public/jobs
+.cache
+.env
+bench/results
+
+# build output
+editor/dist
+*.master.mp4
