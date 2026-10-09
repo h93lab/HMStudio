@@ -66,7 +66,7 @@ Return JSON:
 
 const scenesJsonSchema = () => JSON.stringify(z.toJSONSchema(z.array(sceneSchema), {unrepresentable: 'any'}));
 
-export const writerPrompt = (p: {idea: string; client: string; lang: Lang; dialect: Dialect; brief: unknown; screens?: string[]; noImages?: boolean}) => [
+export const writerPrompt = (p: {idea: string; client: string; lang: Lang; dialect: Dialect; brief: unknown; screens?: string[]; noImages?: boolean; template?: {scenes: {type: string; seconds: number}[]}}) => [
   {
     role: 'system' as const,
     content:
@@ -83,7 +83,7 @@ ${JSON.stringify(p.brief, null, 1)}
 
 ${languageRule(p.lang, p.dialect)}
 
-Write the storyboard following the brief's scene plan.
+${p.template ? `HARD CONSTRAINT (a fixed template; it overrides the brief's scene plan): use exactly these scene types in exactly this order, one scene each, with about these durations: ${p.template.scenes.map((s) => `${s.type} (~${s.seconds}s = ${Math.round(s.seconds * 30)} frames)`).join(', ')}. Fill every scene with the idea's real content; do not add, drop or reorder scenes.` : "Write the storyboard following the brief's scene plan."}
 Copy rules:
 - Scene 1 shows the brief's "hook" as its main on-screen text, kept short (max 8 words) — do not soften or lengthen it.
 - On-screen text is short and punchy (keywords, not sentences). Respect every maxLength in the schema: count characters.

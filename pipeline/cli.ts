@@ -10,6 +10,7 @@ import {Ledger} from './ledger';
 import {listClients} from './render';
 import {bench} from './bench';
 import type {Dialect, Lang} from './prompts';
+import {getTemplate} from './library';
 
 const HELP = `Motion Studio pipeline
 
@@ -36,6 +37,7 @@ Options (make/revise):
                        premium: standard + 3 A/B hook variants + QA auto-fix
   --style <pack>       ${packIds.join(' | ')} (default: the director picks)
   --variants <n>       number of A/B hook variants (overrides the tier)
+  --template <id>      fixed scene structure from templates.json (use exactly those scene types, in order)
   --url <https://…>    read the client's site: verified facts, logo (copy and numbers ground on them)
   --brand-theme        also take the site's brand colors for this video
   --music <mood|file>  tech-pulse | cinematic | upbeat-pop | minimal | lofi, a file in public/ (beats detected), or none
@@ -73,6 +75,7 @@ const {values, positionals} = parseArgs({
     variants: {type: 'string'},
     music: {type: 'string'},
     url: {type: 'string'},
+    template: {type: 'string'},
     'brand-theme': {type: 'boolean', default: false},
     gender: {type: 'string', default: 'male'},
     logo: {type: 'string'},
@@ -96,6 +99,12 @@ const buildOptions = (): BuildOptions => ({
   qaFix: values['qa-fix'] || tier === 'premium',
 });
 
+const templateForCli = (id: string) => {
+  const t = getTemplate(id);
+  if (!t) throw new Error(`unknown template "${id}" (see templates.json)`);
+  return {id: t.id, scenes: t.scenes};
+};
+
 const creativeOptions = (): CreativeOptions => {
   if (values.style && !packIds.includes(values.style as PackId)) throw new Error(`--style must be one of ${packIds.join(', ')}`);
   return {
@@ -106,6 +115,7 @@ const creativeOptions = (): CreativeOptions => {
     musicChoice: values.music,
     url: values.url,
     brandTheme: values['brand-theme'],
+    template: values.template ? templateForCli(values.template) : undefined,
   };
 };
 
@@ -149,7 +159,7 @@ const main = async () => {
     }
     case 'reformat': {
       const {id} = jobArg(args, false);
-      console.log(`✓ ${await reformat(id, pickFormat(loadJob(id).format))}`);
+      console.log(`✓ ${await reformat(id, pickFormat(loadJob(id).format), values.version ? Number(values.version) : undefined)}`);
       return;
     }
     case 'batch': {

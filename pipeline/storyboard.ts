@@ -6,7 +6,8 @@ import type {Ledger} from './ledger';
 const storyboardSchema = z.object({scenes: z.array(sceneSchema).min(4).max(12)});
 
 // Validates a model's storyboard: zod schema + story rules. Small, safe problems are auto-fixed instead of retried.
-export const validateStoryboard = (raw: unknown): {ok: true; scenes: Scene[]} | {ok: false; errors: string[]} => {
+// `order`: a template's scene types; when given, the storyboard must follow it exactly (the template replaces the hook rules).
+export const validateStoryboard = (raw: unknown, order?: string[]): {ok: true; scenes: Scene[]} | {ok: false; errors: string[]} => {
   // Strip pipeline-owned fields a model may echo back.
   if (raw && typeof raw === 'object' && Array.isArray((raw as {scenes?: unknown}).scenes)) {
     for (const s of (raw as {scenes: Record<string, unknown>[]}).scenes) {
@@ -25,8 +26,13 @@ export const validateStoryboard = (raw: unknown): {ok: true; scenes: Scene[]} | 
   if (!parsed.success) return {ok: false, errors: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`)};
   const scenes = parsed.data.scenes;
   const errors: string[] = [];
-  if (scenes[scenes.length - 1].type !== 'outro') errors.push('the last scene must be type "outro"');
-  if (['outro', 'logo'].includes(scenes[0].type)) errors.push('the first scene must be a hook, not logo/outro');
+  if (order) {
+    const got = scenes.map((s) => s.type);
+    if (got.join(',') !== order.join(',')) errors.push(`the template requires exactly these scene types in this order: ${order.join(', ')} (got: ${got.join(', ')})`);
+  } else {
+    if (scenes[scenes.length - 1].type !== 'outro') errors.push('the last scene must be type "outro"');
+    if (['outro', 'logo'].includes(scenes[0].type)) errors.push('the first scene must be a hook, not logo/outro');
+  }
   for (let i = 1; i < scenes.length; i++) if (scenes[i].type === scenes[i - 1].type) errors.push(`scenes.${i}: same type "${scenes[i].type}" twice in a row`);
   for (const s of scenes) {
     if (s.type === 'statement' && s.emphasis) {

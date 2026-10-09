@@ -19,7 +19,7 @@ import {jobDir, ledgerFile, loadJob, loadProps, newJobId, saveJob, saveProps, ve
 
 export type BuildOptions = {voice: boolean; images: boolean; music: boolean; captions: boolean; video: boolean; qa: boolean; qaFix: boolean};
 // Creative options only `make` uses (hook tournament, script critic, A/B variants).
-export type CreativeOptions = {hooks: boolean; critic: boolean; variants: number; style?: PackId; musicChoice?: string; url?: string; brandTheme?: boolean};
+export type CreativeOptions = {hooks: boolean; critic: boolean; variants: number; style?: PackId; musicChoice?: string; url?: string; brandTheme?: boolean; template?: {id: string; scenes: {type: string; seconds: number}[]}};
 
 const log = (msg: string) => console.log(msg);
 
@@ -188,7 +188,7 @@ const importAsset = (id: string, file: string, name: string) => {
 
 export const make = async (input: MakeInput) => {
   const defaults = await clientDefaults(input.client); // fail fast on unknown client
-  const job: Job = {id: newJobId(input.idea), idea: input.idea, client: input.client, lang: input.lang, dialect: input.dialect, format: input.format, seconds: input.seconds, voice: input.narrator || config.tts.voice || defaultVoice(input.lang, input.dialect, input.gender), createdAt: new Date().toISOString(), versions: []};
+  const job: Job = {id: newJobId(input.idea), ...(input.template ? {template: input.template.id} : {}), idea: input.idea, client: input.client, lang: input.lang, dialect: input.dialect, format: input.format, seconds: input.seconds, voice: input.narrator || config.tts.voice || defaultVoice(input.lang, input.dialect, input.gender), createdAt: new Date().toISOString(), versions: []};
   saveJob(job);
   const ledger = new Ledger(ledgerFile(job.id));
   const screens = (input.screens ?? []).map((f, i) => importAsset(job.id, f, `screen-${i + 1}`));
@@ -232,7 +232,9 @@ export const make = async (input: MakeInput) => {
   }
   saveJob(job);
   log(`  hook: ${brief.hook}\n▸ storyboard`);
-  let sb = await requestStoryboard({role: 'writer', models: config.models.writer, messages: writerPrompt({...input, idea, client: defaults.theme.client, brief, screens, noImages: !input.images}), ledger});
+  const order = input.template?.scenes.map((x) => x.type);
+  const validate = (raw: unknown) => validateStoryboard(raw, order);
+  let sb = await requestStoryboard({role: 'writer', models: config.models.writer, messages: writerPrompt({...input, idea, client: defaults.theme.client, brief, screens, noImages: !input.images, template: input.template}), ledger, validate});
   let critic: {score: number; issues: string[]} | undefined;
   if (input.critic) {
     try {
@@ -241,7 +243,7 @@ export const make = async (input: MakeInput) => {
       critic = {score: c.score, issues: c.issues};
       log(`  critic ${c.score}/10${c.feedback ? `, rewriting (${c.issues.length} note${c.issues.length > 1 ? 's' : ''})` : ''}`);
       if (c.feedback) {
-        sb = await requestStoryboard({role: 'writer', models: config.models.writer, messages: revisePrompt({scenes: sb.scenes, feedback: c.feedback, lang: input.lang, dialect: input.dialect}), ledger, temperature: 0.4});
+        sb = await requestStoryboard({role: 'writer', models: config.models.writer, messages: revisePrompt({scenes: sb.scenes, feedback: c.feedback, lang: input.lang, dialect: input.dialect}), ledger, temperature: 0.4, validate});
       }
     } catch (e) {
       log(`  ! critic skipped (${(e as Error).message.split('\n')[0].slice(0, 100)})`);
@@ -252,7 +254,7 @@ export const make = async (input: MakeInput) => {
   if (invented.length) {
     log(`  ! numbers not in the sources: ${invented.join(', ')} → rewriting`);
     try {
-      sb = await requestStoryboard({role: 'writer', models: config.models.writer, messages: revisePrompt({scenes: sb.scenes, feedback: `Remove or replace these numbers, they are not in the client's facts: ${invented.join(', ')}. Use only numbers that appear in: ${idea}`, lang: input.lang, dialect: input.dialect}), ledger, temperature: 0.2});
+      sb = await requestStoryboard({role: 'writer', models: config.models.writer, messages: revisePrompt({scenes: sb.scenes, feedback: `Remove or replace these numbers, they are not in the client's facts: ${invented.join(', ')}. Use only numbers that appear in: ${idea}`, lang: input.lang, dialect: input.dialect}), ledger, temperature: 0.2, validate});
     } catch (e) {
       log(`  ! grounding rewrite failed (${(e as Error).message.split('\n')[0].slice(0, 80)})`);
     }

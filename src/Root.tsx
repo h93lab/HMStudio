@@ -1,252 +1,27 @@
 import {Composition} from 'remotion';
 import {SceneEngine, calculateMetadata, videoSchema} from './engine/SceneEngine';
+import type {VideoProps} from './schema';
+import profiles from './profiles.json';
 
-// One composition = one client profile (Promo-<client>); the pipeline reads its theme and renders it with AI-written scenes.
-// Keep attributes static (no spread) and defaultProps inline: that is what lets the Studio's Save button
-// (props panel) and right-click → Duplicate write profiles back here.
+// One composition = one client profile (Promo-<id>); the pipeline reads its theme and renders it with AI-written scenes.
+// Profiles live in src/profiles.json (edited by the Studio UI through the dashboard API), not in this file.
 // `Showcase` renders every scene type for visual QA.
 export const Root: React.FC = () => (
   <>
-    <Composition
-      id="Promo-nova"
-      component={SceneEngine}
-      schema={videoSchema}
-      calculateMetadata={calculateMetadata}
-      durationInFrames={1}
-      fps={30}
-      width={1080}
-      height={1920}
-      defaultProps={{
-        theme: {
-          client: "Nova Tech",
-          direction: "rtl",
-          numerals: "latn",
-          font: "IBM Plex Sans Arabic",
-          displayFont: "none",
-          logo: "",
-          colors: {
-            background: "#05060f",
-            surface: "rgba(255,255,255,0.06)",
-            primary: "#6c5cff",
-            accent: "#22d3ee",
-            text: "#f5f7ff",
-            muted: "#8b93b8"
-          },
-          radius: 36,
-          glow: 0.7,
-          motion: {
-            speed: 1,
-            damping: 18
-          }
-        },
-        format: "9:16",
-        style: "premium-tech",
-        showCaptions: true,
-        music: "music/ambient-pulse.wav",
-        musicVolume: 0.35,
-        sfx: true,
-        scenes: [
-          {
-            type: "intro",
-            duration: 90,
-            kicker: "إطلاق جديد",
-            title: "المستقبل يبدأ الآن",
-            subtitle: "منصة ذكية تعيد تعريف سرعة العمل"
-          },
-          {
-            type: "features",
-            duration: 120,
-            title: "ليه تختارنا؟",
-            items: [
-              "أداء فائق السرعة",
-              "أمان على مستوى المؤسسات",
-              "تكامل مع أدواتك"
-            ]
-          },
-          {
-            type: "stat",
-            duration: 90,
-            prefix: "",
-            value: 250000,
-            suffix: "+",
-            label: "مستخدم يثقون بنا"
-          },
-          {
-            type: "logo",
-            name: "",
-            duration: 75,
-            tagline: "التقنية بلمسة إنسانية"
-          },
-          {
-            type: "outro",
-            duration: 90,
-            title: "جاهز تبدأ؟",
-            cta: "جرّبه مجاناً",
-            url: "nova.tech"
-          }
-        ]
-      }}
-    />
-    <Composition
-      id="Promo-sahara"
-      component={SceneEngine}
-      schema={videoSchema}
-      calculateMetadata={calculateMetadata}
-      durationInFrames={1}
-      fps={30}
-      width={1080}
-      height={1920}
-      defaultProps={{
-        theme: {
-          client: "Sahara Labs",
-          direction: "rtl",
-          numerals: "arab",
-          font: "Cairo",
-          displayFont: "none",
-          logo: "",
-          colors: {
-            background: "#0d0a06",
-            surface: "rgba(255,214,150,0.07)",
-            primary: "#f59e0b",
-            accent: "#fb7185",
-            text: "#fff8ec",
-            muted: "#b8a68a"
-          },
-          radius: 20,
-          glow: 0.5,
-          motion: {
-            speed: 1.2,
-            damping: 26
-          }
-        },
-        format: "9:16",
-        style: "premium-tech",
-        showCaptions: true,
-        music: "music/ambient-pulse.wav",
-        musicVolume: 0.35,
-        sfx: true,
-        scenes: [
-          {
-            type: "intro",
-            duration: 90,
-            kicker: "إطلاق جديد",
-            title: "المستقبل يبدأ الآن",
-            subtitle: "منصة ذكية تعيد تعريف سرعة العمل"
-          },
-          {
-            type: "features",
-            duration: 120,
-            title: "ليه تختارنا؟",
-            items: [
-              "أداء فائق السرعة",
-              "أمان على مستوى المؤسسات",
-              "تكامل مع أدواتك"
-            ]
-          },
-          {
-            type: "stat",
-            duration: 90,
-            prefix: "",
-            value: 250000,
-            suffix: "+",
-            label: "مستخدم يثقون بنا"
-          },
-          {
-            type: "logo",
-            name: "",
-            duration: 75,
-            tagline: "التقنية بلمسة إنسانية"
-          },
-          {
-            type: "outro",
-            duration: 90,
-            title: "جاهز تبدأ؟",
-            cta: "جرّبه مجاناً",
-            url: "nova.tech"
-          }
-        ]
-      }}
-    />
-    <Composition
-      id="Promo-orbit"
-      component={SceneEngine}
-      schema={videoSchema}
-      calculateMetadata={calculateMetadata}
-      durationInFrames={1}
-      fps={30}
-      width={1080}
-      height={1920}
-      defaultProps={{
-        theme: {
-          client: "Orbit",
-          direction: "ltr",
-          numerals: "latn",
-          font: "Readex Pro",
-          displayFont: "none",
-          logo: "",
-          colors: {
-            background: "#020617",
-            surface: "rgba(148,163,184,0.08)",
-            primary: "#10b981",
-            accent: "#a3e635",
-            text: "#ecfdf5",
-            muted: "#7c8ea6"
-          },
-          radius: 12,
-          glow: 0.4,
-          motion: {
-            speed: 0.9,
-            damping: 14
-          }
-        },
-        format: "9:16",
-        style: "premium-tech",
-        showCaptions: true,
-        music: "music/ambient-pulse.wav",
-        musicVolume: 0.35,
-        sfx: true,
-        scenes: [
-          {
-            type: "intro",
-            duration: 90,
-            kicker: "إطلاق جديد",
-            title: "المستقبل يبدأ الآن",
-            subtitle: "منصة ذكية تعيد تعريف سرعة العمل"
-          },
-          {
-            type: "features",
-            duration: 120,
-            title: "ليه تختارنا؟",
-            items: [
-              "أداء فائق السرعة",
-              "أمان على مستوى المؤسسات",
-              "تكامل مع أدواتك"
-            ]
-          },
-          {
-            type: "stat",
-            duration: 90,
-            prefix: "",
-            value: 250000,
-            suffix: "+",
-            label: "مستخدم يثقون بنا"
-          },
-          {
-            type: "logo",
-            name: "",
-            duration: 75,
-            tagline: "التقنية بلمسة إنسانية"
-          },
-          {
-            type: "outro",
-            duration: 90,
-            title: "جاهز تبدأ؟",
-            cta: "جرّبه مجاناً",
-            url: "nova.tech"
-          }
-        ]
-      }}
-    />
+    {profiles.map((p) => (
+      <Composition
+        key={p.id}
+        id={`Promo-${p.id}`}
+        component={SceneEngine}
+        schema={videoSchema}
+        calculateMetadata={calculateMetadata}
+        durationInFrames={1}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={p.props as VideoProps}
+      />
+    ))}
     <Composition
       id="Showcase"
       component={SceneEngine}

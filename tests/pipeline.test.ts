@@ -127,12 +127,12 @@ test('schema rejects overlong copy and unknown scene types', () => {
   assert.equal(sceneSchema.safeParse({type: 'banana', duration: 90}).success, false);
 });
 
-test('Root.tsx client profiles all satisfy the video schema', () => {
+test('client profiles (src/profiles.json) and the Showcase all satisfy the video schema', () => {
   const root = readFileSync(new URL('../src/Root.tsx', import.meta.url), 'utf8');
+  const profiles: {props: unknown}[] = JSON.parse(readFileSync(new URL('../src/profiles.json', import.meta.url), 'utf8'));
   const blocks = [...root.matchAll(/defaultProps=\{(\{[\s\S]*?\n {6}\})\}/g)].map((m) => m[1]);
-  assert.ok(blocks.length >= 2);
-  for (const b of blocks) {
-    const props = Function(`return (${b})`)();
+  assert.ok(profiles.length >= 2 && blocks.length >= 1);
+  for (const props of [...profiles.map((p) => p.props), ...blocks.map((b) => Function(`return (${b})`)())]) {
     const r = videoSchema.safeParse(props);
     assert.ok(r.success, r.success ? '' : JSON.stringify(r.error.issues.slice(0, 3)));
   }
@@ -196,4 +196,13 @@ test('dropDirectionClaims removes RTL false positives only for RTL brands', () =
   assert.equal(r.score, 7);
   assert.equal(r.droppedDirectionClaims, 1);
   assert.deepEqual(dropDirectionClaims(report, false), report);
+});
+
+test('validateStoryboard enforces a template scene order', () => {
+  const raw = good();
+  const types = raw.scenes.map((s) => s.type);
+  assert.ok(validateStoryboard(good(), types).ok);
+  const r = validateStoryboard(raw, [...types].reverse());
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.ok(r.errors.some((e) => e.includes('template requires')), r.errors.join('|'));
 });

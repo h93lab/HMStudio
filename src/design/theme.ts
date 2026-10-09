@@ -51,7 +51,7 @@ export const formatNumber = (n: number, theme: Theme) =>
 export const isArabic = (text: string) => /[؀-ۿ]/.test(text);
 
 // Assets can be a public/ path or a full URL.
-export const assetSrc = (path: string) => (/^https?:\/\//.test(path) ? path : staticFile(path));
+export const assetSrc = (path: string) => (/^https?:\/\//.test(path) ? path : staticFile(path.replace(/^\/+/, '')));
 
 // Transparent version of any CSS color (hex, rgb(), hsl(), named), unlike appending a hex alpha suffix.
 export const alpha = (color: string, amount: number) => `color-mix(in srgb, ${color} ${Math.round(amount * 100)}%, transparent)`;

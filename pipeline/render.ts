@@ -1,31 +1,29 @@
-import {mkdirSync, renameSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, renderStill, selectComposition} from '@remotion/renderer';
 import {sceneStarts, TRANSITION, type Theme, type VideoProps} from '../src/schema';
 import {ROOT} from './config';
+import {profilesFile, readProfiles} from './profiles';
 
-let serveUrl: Promise<string> | null = null;
+let serveUrl: {key: number; url: Promise<string>} | null = null;
 
-// One bundle per process. public/ is symlinked, so voice/images written after bundling are still served.
-export const getBundle = () =>
-  (serveUrl ??= bundle({entryPoint: path.join(ROOT, 'src', 'index.ts'), symlinkPublicDir: true, enableCaching: true, onProgress: () => undefined}));
-
-export const listClients = async () => {
-  const {getCompositions} = await import('@remotion/renderer');
-  const comps = await getCompositions(await getBundle());
-  return comps.filter((c) => c.id.startsWith('Promo-')).map((c) => ({id: c.id.slice('Promo-'.length), theme: (c.props as VideoProps).theme}));
+// One bundle per process, rebuilt when src/profiles.json changes (a profile created later needs its Promo-<id> composition).
+// public/ is symlinked, so voice/images written after bundling are still served.
+export const getBundle = () => {
+  const key = statSync(profilesFile).mtimeMs;
+  if (!serveUrl || serveUrl.key !== key) serveUrl = {key, url: bundle({entryPoint: path.join(ROOT, 'src', 'index.ts'), symlinkPublicDir: true, enableCaching: true, onProgress: () => undefined})};
+  return serveUrl.url;
 };
 
-// The client's profile (saved from the Studio into Root.tsx) is the source of truth for theme + defaults.
+export const listClients = async () => readProfiles().map((p) => ({id: p.id, theme: p.props.theme}));
+
+// The client's profile (src/profiles.json, edited from the Studio UI) is the source of truth for theme + defaults.
 export const clientDefaults = async (client: string): Promise<VideoProps> => {
-  const comp = await selectComposition({serveUrl: await getBundle(), id: `Promo-${client}`, inputProps: {}}).catch(() => null);
-  if (!comp) {
-    const ids = (await listClients()).map((c) => c.id).join(', ');
-    throw new Error(`unknown client "${client}". Available: ${ids}. Add one in the Studio (right-click a Promo composition → Duplicate).`);
-  }
-  return comp.props as VideoProps;
+  const p = readProfiles().find((x) => x.id === client);
+  if (!p) throw new Error(`unknown client "${client}". Available: ${readProfiles().map((x) => x.id).join(', ')}. Add one in the Studio UI (Clients page).`);
+  return p.props;
 };
 
 export const renderVideo = async (compositionId: string, props: VideoProps, outFile: string, onProgress?: (p: number) => void) => {

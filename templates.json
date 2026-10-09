@@ -1,0 +1,140 @@
+[
+  {
+    "id": "product-launch",
+    "name": "Product launch",
+    "category": "launch",
+    "description": "Announce a new product: hook, a headline number, key features, the app, call to action.",
+    "scenes": [
+      {
+        "type": "intro",
+        "seconds": 3
+      },
+      {
+        "type": "stat",
+        "seconds": 3
+      },
+      {
+        "type": "features",
+        "seconds": 4
+      },
+      {
+        "type": "device",
+        "seconds": 4
+      },
+      {
+        "type": "outro",
+        "seconds": 3
+      }
+    ],
+    "uses": 0,
+    "createdAt": "2026-10-09T00:00:00.000Z"
+  },
+  {
+    "id": "app-explainer",
+    "name": "App explainer",
+    "category": "explainer",
+    "description": "Show how an app works in a few steps.",
+    "scenes": [
+      {
+        "type": "intro",
+        "seconds": 3
+      },
+      {
+        "type": "steps",
+        "seconds": 5
+      },
+      {
+        "type": "device",
+        "seconds": 4
+      },
+      {
+        "type": "features",
+        "seconds": 4
+      },
+      {
+        "type": "outro",
+        "seconds": 3
+      }
+    ],
+    "uses": 0,
+    "createdAt": "2026-10-09T00:00:00.000Z"
+  },
+  {
+    "id": "limited-offer",
+    "name": "Limited offer",
+    "category": "offer",
+    "description": "Short, urgent promo for a discount or deadline.",
+    "scenes": [
+      {
+        "type": "intro",
+        "seconds": 3
+      },
+      {
+        "type": "stat",
+        "seconds": 3
+      },
+      {
+        "type": "statement",
+        "seconds": 3
+      },
+      {
+        "type": "outro",
+        "seconds": 3
+      }
+    ],
+    "uses": 0,
+    "createdAt": "2026-10-09T00:00:00.000Z"
+  },
+  {
+    "id": "before-after",
+    "name": "Before / after",
+    "category": "explainer",
+    "description": "The old way versus the new way, backed by a chart.",
+    "scenes": [
+      {
+        "type": "intro",
+        "seconds": 3
+      },
+      {
+        "type": "comparison",
+        "seconds": 5
+      },
+      {
+        "type": "chart",
+        "seconds": 4
+      },
+      {
+        "type": "outro",
+        "seconds": 3
+      }
+    ],
+    "uses": 0,
+    "createdAt": "2026-10-09T00:00:00.000Z"
+  },
+  {
+    "id": "testimonial",
+    "name": "Testimonial",
+    "category": "other",
+    "description": "Social proof: brand, a customer quote, a result.",
+    "scenes": [
+      {
+        "type": "logo",
+        "seconds": 2.5
+      },
+      {
+        "type": "quote",
+        "seconds": 5
+      },
+      {
+        "type": "stat",
+        "seconds": 3
+      },
+      {
+        "type": "outro",
+        "seconds": 3
+      }
+    ],
+    "uses": 0,
+    "createdAt": "2026-10-09T00:00:00.000Z"
+  }
+]

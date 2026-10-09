@@ -36,6 +36,9 @@ export type Job = {
   brief?: unknown;
   url?: string;
   facts?: unknown; // verified facts scraped from the client's website
+  winner?: number; // A/B version picked in the UI
+  approval?: {status: 'approved' | 'changes'; at: string}; // client decision on the review page
+  template?: string; // template id the video was made from
   versions: Version[];
 };
 

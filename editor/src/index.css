@@ -34,8 +34,8 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", "IBM Plex Sans Arabic", system-ui, sans-serif;
-  --font-display: "Oswald", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-sans: "Cairo", system-ui, sans-serif;
+  --font-display: "Cairo", system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -78,7 +78,7 @@
   font-family: var(--font-display);
   text-transform: uppercase;
   letter-spacing: 0.01em;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 /* Hatched fill for caption/text track clips. */
